@@ -1,0 +1,418 @@
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { Input } from '../components/ui/Input';
+import { Search, Plus, BookOpen, Users, GraduationCap } from 'lucide-react';
+import { Modal } from '../components/ui/Modal';
+import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
+import { db } from '../firebase';
+import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+
+// Tabs component for internal navigation
+const Tabs = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (tab: string) => void }) => (
+    <div className="flex space-x-2 border-b-2 border-black w-full mb-6">
+        {['Dashboard', 'Students', 'Courses'].map((tab) => (
+            <button
+                key={tab}
+                onClick={() => onTabChange(tab)}
+                className={`px-4 py-2 font-bold text-sm border-t-2 border-l-2 border-r-2 border-black -mb-0.5 transition-all ${activeTab === tab
+                    ? 'bg-spark-orange text-black translate-y-[2px]'
+                    : 'bg-white text-gray-500 hover:bg-gray-100'
+                    }`}
+            >
+                {tab}
+            </button>
+        ))}
+    </div>
+);
+
+interface Student {
+    id: string;
+    name: string;
+    course: string;
+    status: string;
+    progress: number;
+    payment: string;
+}
+
+interface Course {
+    id: string;
+    title: string;
+    students: number;
+    duration: string;
+    price: string;
+    instructor: string;
+}
+
+const Academy = () => {
+    const { user } = useAuth();
+    const { logActivity } = useNotifications();
+    const location = useLocation();
+    const [activeTab, setActiveTab] = useState('Dashboard');
+    const [students, setStudents] = useState<Student[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
+
+    // Modal State
+    const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+    const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+
+    // Form Data
+    const [newStudent, setNewStudent] = useState({ name: '', course: '', payment: 'Pending', status: 'Active', progress: 0 });
+    const [newCourse, setNewCourse] = useState({ title: '', instructor: '', duration: '', price: '', students: 0 });
+
+    // Sync Tab with URL
+    useEffect(() => {
+        if (location.pathname.includes('students')) setActiveTab('Students');
+        else if (location.pathname.includes('courses')) setActiveTab('Courses');
+        else if (location.pathname === '/academy') setActiveTab('Dashboard');
+    }, [location.pathname]);
+
+    // Fetch Data Real-time
+    useEffect(() => {
+        setLoading(true);
+        const unsubStudents = onSnapshot(collection(db, "students"),
+            (snap) => {
+                const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Student[];
+                setStudents(data);
+            },
+            (error) => {
+                console.error("Error fetching students:", error);
+                setLoading(false);
+            }
+        );
+        const unsubCourses = onSnapshot(collection(db, "courses"),
+            (snap) => {
+                const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as Course[];
+                setCourses(data);
+                setLoading(false);
+            },
+            (error) => {
+                console.error("Error fetching courses:", error);
+                setLoading(false);
+            }
+        );
+
+        return () => {
+            unsubStudents();
+            unsubCourses();
+        };
+    }, []);
+
+    const handleEnrollStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setActionLoading(true);
+        try {
+            await addDoc(collection(db, "students"), newStudent);
+            await logActivity(`Enrolled student ${newStudent.name} in ${newStudent.course}`, 'success', user?.name);
+            setIsStudentModalOpen(false);
+            setNewStudent({ name: '', course: '', payment: 'Pending', status: 'Active', progress: 0 });
+        } catch (error: any) {
+            console.error("Failed to enroll student", error);
+            logActivity(`Failed to enroll student: ${error.message}`, 'error', user?.name);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleCreateCourse = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setActionLoading(true);
+        try {
+            await addDoc(collection(db, "courses"), newCourse);
+            await logActivity(`Created new course: ${newCourse.title}`, 'success', user?.name);
+            setIsCourseModalOpen(false);
+            setNewCourse({ title: '', instructor: '', duration: '', price: '', students: 0 });
+        } catch (error: any) {
+            console.error("Failed to create course", error);
+            logActivity(`Failed to create course: ${error.message}`, 'error', user?.name);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleDeleteStudent = async (id: string) => {
+        if (confirm("Delete this student?")) {
+            await deleteDoc(doc(db, "students", id));
+            await logActivity(`Removed student from records`, 'warning', user?.name);
+        }
+    };
+
+    const handleActionClick = () => {
+        if (activeTab === 'Students' || activeTab === 'Dashboard') setIsStudentModalOpen(true);
+        else if (activeTab === 'Courses') setIsCourseModalOpen(true);
+    };
+
+    return (
+        <div className="space-y-6 overflow-y-auto pb-20">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h2 className="text-3xl font-bold">Sparkcode Academy</h2>
+                    <p className="text-gray-500 font-medium">Manage students and curriculum</p>
+                </div>
+                <Button onClick={handleActionClick}>
+                    <Plus size={18} className="mr-2" />
+                    {activeTab === 'Students' ? 'Enroll Student' : activeTab === 'Courses' ? 'New Course' : 'Action'}
+                </Button>
+            </div>
+
+            <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+            {loading ? (
+                <div className="text-center py-10 font-bold text-gray-400">Loading Academy Data...</div>
+            ) : (
+                <>
+                    {/* DASHBOARD VIEW */}
+                    {activeTab === 'Dashboard' && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <Card className="bg-spark-blue">
+                                    <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-black">
+                                        <CardTitle className="text-sm font-bold uppercase">Total Students</CardTitle>
+                                        <Users size={20} />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold">{students.length}</div>
+                                        <p className="text-xs font-bold opacity-70">Enrolled Students</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-spark-yellow">
+                                    <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-black">
+                                        <CardTitle className="text-sm font-bold uppercase">Active Courses</CardTitle>
+                                        <BookOpen size={20} />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold">{courses.length}</div>
+                                        <p className="text-xs font-bold opacity-70">Available Courses</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-green-300">
+                                    <CardHeader className="flex flex-row items-center justify-between pb-2 border-b-black">
+                                        <CardTitle className="text-sm font-bold uppercase">Graduates</CardTitle>
+                                        <GraduationCap size={20} />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold">{students.filter(s => s.status === 'Graduated').length}</div>
+                                        <p className="text-xs font-bold opacity-70">Alumni Network</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STUDENTS VIEW */}
+                    {activeTab === 'Students' && (
+                        <div className="space-y-4">
+                            <div className="flex gap-4 mb-4">
+                                <div className="relative w-full md:w-1/3">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                                    <Input placeholder="Search students..." className="pl-10" />
+                                </div>
+                            </div>
+
+                            <div className="bg-white border-2 border-black shadow-neo overflow-hidden">
+                                <table className="w-full text-left bg-white">
+                                    <thead className="bg-gray-50 border-b-2 border-black">
+                                        <tr>
+                                            <th className="p-4 font-bold border-r border-black">Name</th>
+                                            <th className="p-4 font-bold border-r border-black">Course</th>
+                                            <th className="p-4 font-bold border-r border-black">Status</th>
+                                            <th className="p-4 font-bold border-r border-black">Progress</th>
+                                            <th className="p-4 font-bold">Payment</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {students.map((student) => (
+                                            <tr key={student.id} className="border-b border-black last:border-0 hover:bg-gray-50 group">
+                                                <td className="p-4 font-bold border-r border-black">{student.name}</td>
+                                                <td className="p-4 border-r border-black">{student.course}</td>
+                                                <td className="p-4 border-r border-black">
+                                                    <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
+                                                        {student.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-4 border-r border-black">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-24 h-2 bg-gray-200 border border-black rounded-full overflow-hidden">
+                                                            <div className="h-full bg-spark-purple" style={{ width: `${student.progress}%` }}></div>
+                                                        </div>
+                                                        <span className="text-xs font-bold">{student.progress}%</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 font-mono font-bold flex justify-between items-center">
+                                                    <span className={student.payment === 'Paid' ? 'text-green-600' : 'text-red-500'}>
+                                                        {student.payment}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleDeleteStudent(student.id.toString())}
+                                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <Search size={16} className="rotate-45" /> {/* Using Search rotated as cross/delete visual or Trash if available */}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* COURSES VIEW */}
+                    {activeTab === 'Courses' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {courses.map(course => (
+                                <Card key={course.id} className="hover:shadow-neo-lg transition-all group">
+                                    <div className="h-32 bg-spark-purple border-b-2 border-black flex items-center justify-center p-6 relative overflow-hidden">
+                                        <BookOpen size={64} className="text-white opacity-20 absolute -right-4 -bottom-4 transform rotate-12 group-hover:scale-110 transition-transform" />
+                                        <h3 className="text-2xl font-bold text-white relative z-10 text-center">{course.title}</h3>
+                                    </div>
+                                    <CardContent className="space-y-4 pt-6">
+                                        <div className="flex justify-between items-center text-sm font-bold border-b border-gray-100 pb-2">
+                                            <span className="text-gray-500">Instructor</span>
+                                            <span>{course.instructor}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm font-bold border-b border-gray-100 pb-2">
+                                            <span className="text-gray-500">Duration</span>
+                                            <span>{course.duration}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm font-bold pb-2">
+                                            <span className="text-gray-500">Students</span>
+                                            <span>{course.students}</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-2">
+                                            <span className="text-xl font-bold bg-spark-yellow px-2 border border-black shadow-neo-sm transform -rotate-2">
+                                                {course.price}
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => {
+                                                    if (confirm("Delete this course?")) deleteDoc(doc(db, "courses", course.id));
+                                                }}>
+                                                    Delete
+                                                </Button>
+                                                <Button size="sm" variant="default">Manage</Button>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* ENROLL STUDENT MODAL */}
+            <Modal
+                isOpen={isStudentModalOpen}
+                onClose={() => setIsStudentModalOpen(false)}
+                title="Enroll New Student"
+            >
+                <form onSubmit={handleEnrollStudent} className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold">Student Name</label>
+                        <Input
+                            required
+                            placeholder="e.g. John Doe"
+                            value={newStudent.name}
+                            onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold">Assign Course</label>
+                        <select
+                            className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-bold shadow-neo-sm focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-none"
+                            value={newStudent.course}
+                            onChange={(e) => setNewStudent({ ...newStudent, course: e.target.value })}
+                            required
+                        >
+                            <option value="">Select a course...</option>
+                            {courses.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold">Student Status</label>
+                        <select
+                            className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-bold shadow-neo-sm focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-none"
+                            value={newStudent.status}
+                            onChange={(e) => setNewStudent({ ...newStudent, status: e.target.value })}
+                        >
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Graduated">Graduated</option>
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold">Payment Status</label>
+                        <select
+                            className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-bold shadow-neo-sm focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-none"
+                            value={newStudent.payment}
+                            onChange={(e) => setNewStudent({ ...newStudent, payment: e.target.value })}
+                        >
+                            <option value="Paid">Paid</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+                    <Button type="submit" className="w-full mt-4" disabled={actionLoading}>
+                        {actionLoading ? "Enrolling..." : "Enroll Student"}
+                    </Button>
+                </form>
+            </Modal>
+
+            {/* CREATE COURSE MODAL */}
+            <Modal
+                isOpen={isCourseModalOpen}
+                onClose={() => setIsCourseModalOpen(false)}
+                title="Create New Course"
+            >
+                <form onSubmit={handleCreateCourse} className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold">Course Title</label>
+                        <Input
+                            required
+                            placeholder="e.g. Advanced Python"
+                            value={newCourse.title}
+                            onChange={(e) => setNewCourse({ ...newCourse, title: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold">Instructor</label>
+                        <Input
+                            required
+                            placeholder="e.g. Jane Smith"
+                            value={newCourse.instructor}
+                            onChange={(e) => setNewCourse({ ...newCourse, instructor: e.target.value })}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Duration</label>
+                            <Input
+                                placeholder="e.g. 8 Weeks"
+                                value={newCourse.duration}
+                                onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Price</label>
+                            <Input
+                                placeholder="e.g. $499"
+                                value={newCourse.price}
+                                onChange={(e) => setNewCourse({ ...newCourse, price: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <Button type="submit" className="w-full mt-4" disabled={actionLoading}>
+                        {actionLoading ? "Creating..." : "Create Course"}
+                    </Button>
+                </form>
+            </Modal>
+        </div>
+    );
+};
+
+export default Academy;
