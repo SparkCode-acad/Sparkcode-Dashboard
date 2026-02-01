@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import MainLayout from './components/layout/MainLayout';
@@ -11,7 +12,6 @@ import Academy from './pages/Academy';
 import Finance from './pages/Finance';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
-import Resources from './pages/Resources';
 import Kanban from './pages/Kanban';
 import Login from './pages/Login';
 
@@ -48,36 +48,37 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <NotificationProvider>
-          <ThemeProvider>
-            <Router>
-              <Routes>
-                <Route path="/login" element={<Login />} />
+        <ToastProvider>
+          <NotificationProvider>
+            <ThemeProvider>
+              <Router>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
 
-                <Route path="/" element={<ProtectedRoute />}>
-                  <Route element={<MainLayout />}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="projects" element={<Projects />} />
-                    <Route path="projects/board" element={<Kanban />} />
-                    <Route path="clients" element={<Clients />} />
-                    <Route path="academy" element={<Academy />} />
-                    <Route path="academy/students" element={<Academy />} />
-                    <Route path="academy/courses" element={<Academy />} />
-                    <Route element={<RoleGuard allowedRoles={['admin']} />}>
-                      <Route path="finance" element={<Finance />} />
-                      <Route path="settings" element={<Settings />} />
+                  <Route path="/" element={<ProtectedRoute />}>
+                    <Route element={<MainLayout />}>
+                      <Route index element={<Dashboard />} />
+                      <Route path="projects" element={<Projects />} />
+                      <Route path="projects/board" element={<Kanban />} />
+                      <Route path="clients" element={<Clients />} />
+                      <Route path="academy" element={<Academy />} />
+                      <Route path="academy/students" element={<Academy />} />
+                      <Route path="academy/courses" element={<Academy />} />
+                      <Route element={<RoleGuard allowedRoles={['admin']} />}>
+                        <Route path="finance" element={<Finance />} />
+                        <Route path="settings" element={<Settings />} />
+                      </Route>
+                      <Route path="notifications" element={<Notifications />} />
                     </Route>
-                    <Route path="notifications" element={<Notifications />} />
-                    <Route path="resources" element={<Resources />} />
                   </Route>
-                </Route>
 
-                {/* Catch-all: Redirect to Home (Safe Redirect) */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Router>
-          </ThemeProvider>
-        </NotificationProvider>
+                  {/* Catch-all: Redirect to Home (Safe Redirect) */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Router>
+            </ThemeProvider>
+          </NotificationProvider>
+        </ToastProvider>
       </AuthProvider>
     </ErrorBoundary>
   )

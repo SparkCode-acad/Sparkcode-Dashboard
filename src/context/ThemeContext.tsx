@@ -39,9 +39,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
             const unsub = onSnapshot(doc(db, "config", "global_settings"), (doc) => {
                 if (doc.exists()) {
                     const data = doc.data();
-                    if (data.theme) setThemeState(data.theme);
-                    if (data.companyName) setCompanyNameState(data.companyName);
-                    if (data.logoUrl) setLogoUrlState(data.logoUrl);
+                    setThemeState(data.theme || 'light');
+                    setCompanyNameState(data.companyName || "Sparkcode");
+                    setLogoUrlState(data.logoUrl || "");
                 }
             }, (error) => {
                 console.error("Theme Sync Error:", error);

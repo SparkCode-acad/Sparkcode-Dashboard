@@ -5,37 +5,49 @@ import { Input } from '../components/ui/Input';
 import { User, Lock, Bell, Globe, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useToast } from '../context/ToastContext';
 import { useTheme } from '../hooks/useTheme';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
+import { cn, formatRole } from '../lib/utils';
 
 const Settings = () => {
     const { user } = useAuth();
     const { logActivity } = useNotifications();
+    const { showToast } = useToast();
     const { theme, setTheme, companyName, setCompanyName, logoUrl, setLogoUrl } = useTheme();
 
     // Internal state for form handling
     const [loading, setLoading] = useState(false);
-    const [successMessage, setSuccessMessage] = useState('');
     const [localCompanyName, setLocalCompanyName] = useState(companyName);
     const [localTheme, setLocalTheme] = useState(theme);
     const [localLogoUrl, setLocalLogoUrl] = useState(logoUrl);
     const [uploading, setUploading] = useState(false);
 
-    // Sync local state with context when context updates (e.g. from Firebase)
+    // Initial sync from context
     useEffect(() => {
-        setLocalCompanyName(companyName);
-        setLocalTheme(theme);
-        setLocalLogoUrl(logoUrl);
+        if (companyName && !localCompanyName) setLocalCompanyName(companyName);
+        if (theme && !localTheme) setLocalTheme(theme);
+        if (logoUrl && !localLogoUrl) setLocalLogoUrl(logoUrl);
     }, [companyName, theme, logoUrl]);
 
-    // Settings State
+    // Initial sync from Auth context for profile
     const [profile, setProfile] = useState({
-        name: user?.name || 'Admin User',
-        email: user?.email || 'admin@sparkcode.com',
-        role: 'Super Admin'
+        name: user?.name || 'User',
+        email: user?.email || '',
+        role: user?.role || 'student'
     });
+
+    useEffect(() => {
+        if (user) {
+            setProfile({
+                name: user.name,
+                email: user.email,
+                role: user.role
+            });
+        }
+    }, [user]);
 
     const [security, setSecurity] = useState({
         currentPassword: '',
@@ -76,36 +88,59 @@ const Settings = () => {
             return;
         }
 
-        console.log("Starting upload for file:", file.name, "Size:", file.size);
+        console.log("Starting logo upload for", file.name, "Size:", file.size);
         setUploading(true);
         try {
             const storagePath = `logos/dashboard_logo_${Date.now()}`;
             console.log("Storage path:", storagePath);
             const storageRef = ref(storage, storagePath);
 
-            console.log("Calling uploadBytes...");
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log("Upload successful, snapshot:", snapshot);
+            const uploadTask = uploadBytesResumable(storageRef, file);
 
-            console.log("Getting download URL...");
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            console.log("Download URL obtained:", downloadURL);
+            await new Promise<void>((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log(`Logo upload progress: ${progress.toFixed(2)}%`);
+                    },
+                    (error: any) => {
+                        console.error("Logo upload failed:", error);
+                        reject(error);
+                    },
+                    async () => {
+                        console.log("Logo file uploaded successfully to storage");
+                        try {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                            console.log("Download URL obtained:", downloadURL);
+                            setLocalLogoUrl(downloadURL);
+                            resolve();
+                        } catch (err) {
+                            console.error("Error getting logo download URL:", err);
+                            reject(err);
+                        }
+                    }
+                );
+            });
 
-            setLocalLogoUrl(downloadURL);
             await logActivity(`Uploaded new dashboard logo`, 'info', user?.name);
             console.log("Activity logged");
         } catch (error: any) {
             console.error("Detailed error uploading logo:", error);
-            alert("Error uploading logo: " + error.message);
+            let userMessage = error.message || "Unknown error";
+
+            if (error.code === "storage/unauthorized" || error.message?.includes("ERR_FAILED")) {
+                userMessage = "Upload blocked by browser or permissions. \n\n1. Check if an AdBlocker is blocking Firebase. \n2. Ensure CORS is allowed for localhost in Firebase Console. \n3. Verify Storage is enabled in the Firebase Console.";
+            }
+
+            showToast("Upload failed: " + userMessage, "error");
         } finally {
-            console.log("Upload process finished (finally)");
+            console.log("Upload process finished");
             setUploading(false);
         }
     };
 
     const handleSave = async () => {
         setLoading(true);
-        setSuccessMessage('');
         try {
             // Save Global Config
             await setDoc(doc(db, "config", "global_settings"), {
@@ -123,14 +158,11 @@ const Settings = () => {
 
             await logActivity(`Updated system configuration`, 'info', user?.name);
 
-            setSuccessMessage("Settings saved successfully!");
+            showToast("Settings saved successfully!");
             setSecurity({ currentPassword: '', newPassword: '' });
-
-            // Clear success message after 3 seconds
-            setTimeout(() => setSuccessMessage(''), 3000);
         } catch (error: any) {
             console.error("Error saving settings", error);
-            alert("Error saving settings: " + (error.message || "Unknown error"));
+            showToast("Error saving settings: " + (error.message || "Unknown error"), "error");
         } finally {
             setLoading(false);
         }
@@ -138,12 +170,6 @@ const Settings = () => {
 
     return (
         <div className="space-y-6 pb-20">
-            {/* Success Message Toast */}
-            {successMessage && (
-                <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50 animate-fade-in-down font-bold">
-                    {successMessage}
-                </div>
-            )}
 
             <div className="flex justify-between items-center">
                 <div>
@@ -224,7 +250,7 @@ const Settings = () => {
                             <Button
                                 variant="outline"
                                 className="w-full"
-                                onClick={() => logActivity(`Manual system test performed by ${user?.name || 'Admin'}`, 'success', user?.name)}
+                                onClick={() => logActivity(`Manual system test performed by ${user?.name || 'User'}`, 'success', user?.name || 'System')}
                             >
                                 Log Test Activity
                             </Button>
@@ -245,6 +271,7 @@ const Settings = () => {
                             <Input
                                 value={profile.name}
                                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                                placeholder="Your Name"
                             />
                         </div>
                         <div className="space-y-2">
@@ -253,11 +280,21 @@ const Settings = () => {
                                 value={profile.email}
                                 onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                                 type="email"
+                                disabled
+                                className="bg-gray-100 dark:bg-gray-700 opacity-60"
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-bold dark:text-gray-300">Role</label>
-                            <Input value={profile.role} disabled className="bg-gray-100 dark:bg-gray-700 dark:text-gray-400" />
+                            <label className="text-sm font-bold dark:text-gray-300">Your Identity/Role</label>
+                            <div className="flex items-center gap-2">
+                                <span className={cn(
+                                    "px-3 py-1 border-2 border-black text-xs font-black uppercase shadow-neo-sm rounded",
+                                    profile.role === 'admin' ? "bg-spark-yellow" : "bg-spark-purple text-white"
+                                )}>
+                                    {formatRole(profile.role)}
+                                </span>
+                                <p className="text-[10px] font-bold text-gray-400 italic">Roles are assigned by superior administrators.</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

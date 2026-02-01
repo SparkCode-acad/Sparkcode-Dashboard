@@ -6,6 +6,7 @@ import { Search, Mail, Phone, MapPin, Loader2 } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useToast } from '../context/ToastContext';
 import { db } from '../firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 
@@ -20,6 +21,7 @@ interface Client {
 const Clients = () => {
     const { user } = useAuth();
     const { logActivity } = useNotifications();
+    const { showToast, showConfirm } = useToast();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,10 +58,10 @@ const Clients = () => {
             await addDoc(collection(db, "clients"), newClient);
             setIsModalOpen(false);
             setNewClient({ name: '', email: '', phone: '', location: '' });
-            alert("Client Added Successfully!");
+            showToast("Client added successfully!");
         } catch (error: any) {
             console.error("Failed to create client", error);
-            alert("Failed to create client: " + (error.message || "Unknown error"));
+            showToast("Failed to create client", "error");
         } finally {
             setCreateLoading(false);
         }
@@ -118,10 +120,11 @@ const Clients = () => {
                                         variant="outline"
                                         className="text-red-500 border-red-200 hover:bg-red-50 hover:border-red-500"
                                         onClick={async () => {
-                                            if (confirm("Delete client?")) {
+                                            showConfirm("Delete Client", `Are you sure you want to remove ${client.name}?`, async () => {
                                                 await deleteDoc(doc(db, "clients", client.id));
                                                 await logActivity(`Deleted client ${client.name}`, 'warning', user?.name);
-                                            }
+                                                showToast("Client deleted", "warning");
+                                            });
                                         }}
                                     >
                                         Delete

@@ -8,6 +8,8 @@ const firebaseConfig = {
     apiKey: "AIzaSyBzCRDBawb84xVE_l917h6c2tIOYLIa1q4",
     authDomain: "sparkcode-dashboard.firebaseapp.com",
     projectId: "sparkcode-dashboard",
+    // Note: Newer projects use .firebasestorage.app, older ones use .appspot.com
+    // If you get net::ERR_FAILED, ensure CORS is configured in the Firebase Console.
     storageBucket: "sparkcode-dashboard.firebasestorage.app",
     messagingSenderId: "666909699217",
     appId: "1:666909699217:web:f79ef7ad3ed3b434cb6330",

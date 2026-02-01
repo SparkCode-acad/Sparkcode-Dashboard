@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { DollarSign, TrendingUp, TrendingDown, FileText, Download } from 'lucide-react';
 import { db } from '../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { useToast } from '../context/ToastContext';
 
 import { jsPDF } from "jspdf";
 
@@ -17,6 +18,7 @@ interface Transaction {
 }
 
 const Finance = () => {
+    const { showToast } = useToast();
     const [financeData, setFinanceData] = useState({
         balance: "$0.00",
         income: "$0.00",
@@ -88,7 +90,7 @@ const Finance = () => {
 
     const handleDownloadCSV = () => {
         if (!financeData.transactions.length) {
-            alert("No transactions to download.");
+            showToast("No transactions to download.", "warning");
             return;
         }
 

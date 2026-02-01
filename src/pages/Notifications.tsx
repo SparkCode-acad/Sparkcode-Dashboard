@@ -4,11 +4,13 @@ import { Button } from '../components/ui/Button';
 import { Bell, Send, CheckCircle, Info, AlertTriangle, XCircle, Clock } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
-import { cn } from '../lib/utils';
+import { useToast } from '../context/ToastContext';
+import { cn, formatRole } from '../lib/utils';
 
 const Notifications = () => {
-    const { activities, logActivity } = useNotifications();
+    const { activities, logActivity, markAllAsRead } = useNotifications();
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [message, setMessage] = useState('');
     const [type, setType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
     const [sending, setSending] = useState(false);
@@ -19,9 +21,9 @@ const Notifications = () => {
 
         setSending(true);
         try {
-            await logActivity(message, type, user?.name || 'Admin');
+            await logActivity(message, type, user?.name || 'System', user?.role || 'student');
             setMessage('');
-            alert("Notification sent successfully!");
+            showToast(user?.role === 'admin' ? "Announcement broadcasted!" : "Message sent to team!");
         } catch (error) {
             console.error("Error sending notification:", error);
         } finally {
@@ -50,7 +52,7 @@ const Notifications = () => {
                 <Card className="lg:col-span-1 dark:bg-gray-800 dark:border-gray-700 h-fit">
                     <CardHeader className="border-b-black dark:border-gray-600">
                         <CardTitle className="flex items-center gap-2 dark:text-white">
-                            <Send size={20} /> Send Announcement
+                            <Send size={20} /> {user?.role === 'admin' ? 'Send Announcement' : 'Send Message'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
@@ -59,14 +61,14 @@ const Notifications = () => {
                                 <label className="text-sm font-bold dark:text-gray-300">Message</label>
                                 <textarea
                                     className="w-full p-3 border-2 border-black dark:border-gray-700 rounded bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-spark-orange outline-none resize-none h-32"
-                                    placeholder="Type your message here..."
+                                    placeholder={user?.role === 'admin' ? "Type announcement here..." : "Type your message or feedback for the team..."}
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
                                     required
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-bold dark:text-gray-300">Type</label>
+                                <label className="text-sm font-bold dark:text-gray-300">{user?.role === 'admin' ? 'Notification Type' : 'Urgency'}</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {(['info', 'success', 'warning', 'error'] as const).map((t) => (
                                         <button
@@ -80,13 +82,13 @@ const Notifications = () => {
                                                     : "border-gray-200 text-gray-400 hover:border-black dark:border-gray-700 dark:hover:border-gray-500"
                                             )}
                                         >
-                                            {t}
+                                            {user?.role === 'admin' ? t : (t === 'info' ? 'General' : t === 'error' ? 'Urgent' : t)}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                             <Button type="submit" className="w-full" disabled={sending}>
-                                {sending ? 'Sending...' : 'Broadcast Notification'}
+                                {sending ? 'Sending...' : (user?.role === 'admin' ? 'Broadcast Announcement' : 'Send Message')}
                             </Button>
                         </form>
                     </CardContent>
@@ -94,10 +96,15 @@ const Notifications = () => {
 
                 {/* Activity Feed */}
                 <Card className="lg:col-span-2 dark:bg-gray-800 dark:border-gray-700">
-                    <CardHeader className="border-b-black dark:border-gray-600">
+                    <CardHeader className="border-b-black dark:border-gray-600 flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2 dark:text-white">
                             <Bell size={20} /> Latest Activity
                         </CardTitle>
+                        {activities.some(a => !a.read) && (
+                            <Button variant="ghost" size="sm" onClick={() => markAllAsRead()} className="text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white dark:hover:bg-spark-purple">
+                                Mark all as read
+                            </Button>
+                        )}
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="divide-y-2 divide-gray-100 dark:divide-gray-700 max-h-[600px] overflow-y-auto">
@@ -117,8 +124,17 @@ const Notifications = () => {
                                                 <span className="flex items-center gap-1">
                                                     <Clock size={12} /> {activity.createdAt?.toDate ? activity.createdAt.toDate().toLocaleString() : 'Just now'}
                                                 </span>
-                                                <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                                                <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded flex items-center gap-1">
                                                     BY: {activity.user || 'System'}
+                                                    {activity.userRole && (
+                                                        <span className={cn(
+                                                            "text-[8px] px-1 border border-black rounded shadow-neo-sm font-black uppercase",
+                                                            activity.userRole === 'admin' ? "bg-spark-yellow text-black" :
+                                                                activity.userRole === 'System' ? "bg-black text-white" : "bg-spark-purple text-white"
+                                                        )}>
+                                                            {formatRole(activity.userRole)}
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>

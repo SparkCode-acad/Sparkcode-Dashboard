@@ -7,8 +7,9 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useToast } from '../context/ToastContext';
 import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface Project {
     id: string;
@@ -23,6 +24,7 @@ interface Project {
 const Projects = () => {
     const { user } = useAuth();
     const { logActivity } = useNotifications();
+    const { showToast, showConfirm } = useToast();
     const [projects, setProjects] = useState<Project[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,13 +86,17 @@ const Projects = () => {
         e.preventDefault();
         setCreateLoading(true);
         try {
-            await addDoc(collection(db, "projects"), newProject);
+            await addDoc(collection(db, "projects"), {
+                ...newProject,
+                createdAt: serverTimestamp()
+            });
             await logActivity(`Started new project: ${newProject.name}`, 'success', user?.name);
             setIsModalOpen(false);
+            showToast("Project created successfully!");
             setNewProject({ name: '', client: '', budget: '', deadline: '', status: 'In Progress', team: 1 });
         } catch (error: any) {
             console.error("Failed to create project", error);
-            alert("Error creating project: " + (error.message || "Unknown error"));
+            showToast("Failed to create project", "error");
         } finally {
             setCreateLoading(false);
         }
@@ -98,13 +104,15 @@ const Projects = () => {
 
     const handleDelete = async (id: string | undefined) => {
         if (!id) return;
-        if (!confirm("Are you sure you want to delete this project?")) return;
-        try {
-            await deleteDoc(doc(db, "projects", id));
-            await logActivity(`Archived project record`, 'error', user?.name);
-        } catch (error) {
-            console.error("Error deleting project: ", error);
-        }
+        showConfirm("Archive Project", "Are you sure you want to archive this project? This will remove it from the main view.", async () => {
+            try {
+                await deleteDoc(doc(db, "projects", id));
+                await logActivity(`Archived project record`, 'error', user?.name);
+                showToast("Project archived", "info");
+            } catch (error) {
+                console.error("Error deleting project: ", error);
+            }
+        });
     };
 
     const handleOpenTasks = (project: Project) => {

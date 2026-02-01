@@ -4,7 +4,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
-import { cn } from "../../lib/utils";
+import { cn, formatRole } from "../../lib/utils";
 import {
     LayoutDashboard,
     Briefcase,
@@ -68,7 +68,6 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
             items: [
                 { name: "Finance", icon: DollarSign, path: "/finance" },
                 { name: "Notifications", icon: Bell, path: "/notifications" },
-                { name: "Resources", icon: Layers, path: "/resources" },
                 { name: "Settings", icon: Settings, path: "/settings" },
             ]
         }
@@ -78,10 +77,21 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
     const filteredSections = menuItems.map(section => ({
         ...section,
         items: (section.items as any[]).filter(item => {
-            if (user?.role !== 'admin' && (item.name === 'Finance' || item.name === 'Settings')) {
-                return false;
+            // General access rules
+            if (user?.role === 'admin') return true;
+
+            // Student/Guest rules
+            if (section.section === "Agency") {
+                // Students can only see Overview, not projects/clients
+                return item.name === "Overview";
             }
-            return true;
+
+            if (section.section === "General") {
+                // Students can only see Notifications
+                return item.name === "Notifications";
+            }
+
+            return true; // Academy section is open to all for now
         })
     })).filter(section => section.items.length > 0);
 
@@ -91,7 +101,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
             mobile ? "w-72" : "w-64"
         )}>
             {/* Header / Logo */}
-            <div className="p-6 flex items-center justify-between border-b-2 border-black dark:border-gray-800">
+            <div className="p-6 flex items-center justify-between border-r-2 border-b-2 border-black dark:border-gray-800">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-black dark:bg-spark-purple rounded-xl border-2 border-white flex items-center justify-center shadow-neo-sm">
                         {logoUrl ? (
@@ -106,7 +116,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
                         </h1>
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{user?.role || 'User'}</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{formatRole(user?.role)}</span>
                         </div>
                     </div>
                 </div>
@@ -164,11 +174,19 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
                 <div className="flex items-center justify-between px-2">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-spark-purple rounded-full border-2 border-black dark:border-gray-600 flex items-center justify-center text-xs font-bold text-white">
-                            {user?.name?.charAt(0) || 'A'}
+                            {user?.name?.charAt(0) || 'U'}
                         </div>
                         <div className="overflow-hidden text-black dark:text-white">
-                            <p className="text-xs font-bold truncate w-24">{user?.name || 'Admin'}</p>
-                            <p className="text-[10px] text-gray-500 truncate w-24">{user?.email}</p>
+                            <div className="flex items-center gap-1">
+                                <p className="text-xs font-bold truncate w-20">{user?.name || 'User'}</p>
+                                <span className={cn(
+                                    "text-[8px] px-1 border border-black rounded shadow-neo-sm font-black uppercase",
+                                    user?.role === 'admin' ? "bg-spark-yellow" : "bg-spark-purple text-white"
+                                )}>
+                                    {formatRole(user?.role)}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 truncate w-24">{user?.email || 'Guest'}</p>
                         </div>
                     </div>
 

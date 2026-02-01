@@ -4,6 +4,7 @@ import { DollarSign, Users, Briefcase, TrendingUp, ArrowUpRight, BarChart3 } fro
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNotifications } from "../context/NotificationContext";
+import { useAuth } from "../context/AuthContext";
 import { SkeletonCard, Skeleton } from "../components/ui/Skeleton";
 import { cn } from "../lib/utils";
 import {
@@ -13,6 +14,7 @@ import {
 
 const Dashboard = () => {
     const { activities } = useNotifications();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         revenue: 0,
@@ -20,40 +22,71 @@ const Dashboard = () => {
         activeStudents: 0,
         growth: "24%"
     });
-
-    // Mock data for charts - in a real app this would come from analytics/history collections
-    const revenueData = [
-        { name: 'Jan', revenue: 4000 },
-        { name: 'Feb', revenue: 3000 },
-        { name: 'Mar', revenue: 5000 },
-        { name: 'Apr', revenue: 4500 },
-        { name: 'May', revenue: 6000 },
-        { name: 'Jun', revenue: 5500 },
-        { name: 'Jul', revenue: 7000 },
-    ];
-
-    const studentGrowthData = [
-        { name: 'Mon', count: 4 },
-        { name: 'Tue', count: 7 },
-        { name: 'Wed', count: 5 },
-        { name: 'Thu', count: 12 },
-        { name: 'Fri', count: 9 },
-        { name: 'Sat', count: 2 },
-        { name: 'Sun', count: 3 },
-    ];
+    const [revenueData, setRevenueData] = useState<{ name: string, revenue: number }[]>([]);
+    const [studentGrowthData, setStudentGrowthData] = useState<{ name: string, count: number }[]>([]);
 
     useEffect(() => {
         setLoading(true);
+
         const unsubProjects = onSnapshot(collection(db, "projects"),
             (snapshot) => {
-                const projects = snapshot?.docs?.map(doc => doc.data()) || [];
-                const activeCount = projects.filter(p => p?.status === 'In Progress').length || 0;
-                const calculatedRevenue = (projects.length || 0) * 5250;
+                const projects = snapshot?.docs?.map(doc => ({ id: doc.id, ...doc.data() })) || [];
+                const activeCount = projects.filter((p: any) => p?.status === 'In Progress').length || 0;
+
+                // 1. Calculate stats
+                let totalBudget = 0;
+                const monthlyRevenue: Record<string, number> = {
+                    'Jan': 0, 'Feb': 0, 'Mar': 0, 'Apr': 0, 'May': 0, 'Jun': 0, 'Jul': 0, 'Aug': 0, 'Sep': 0, 'Oct': 0, 'Nov': 0, 'Dec': 0
+                };
+
+                projects.forEach((p: any) => {
+                    const budgetStr = p.budget || "0";
+                    const numericBudget = parseInt(budgetStr.replace(/[^0-9.-]+/g, "")) || 0;
+                    totalBudget += numericBudget;
+
+                    const date = p.createdAt?.toDate ? p.createdAt.toDate() : new Date();
+                    const month = date.toLocaleString('default', { month: 'short' });
+                    if (monthlyRevenue[month] !== undefined) {
+                        monthlyRevenue[month] += numericBudget;
+                    }
+                });
 
                 setStats(prev => ({
                     ...prev,
                     activeProjects: activeCount,
-                    revenue: calculatedRevenue
+                    revenue: totalBudget
+                }));
+
+                // 2. Prepare chart data (last 7 months for display)
+                const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const currentMonthIdx = new Date().getMonth();
+                const displayMonths = [];
+                for (let i = 6; i >= 0; i--) {
+                    const idx = (currentMonthIdx - i + 12) % 12;
+                    displayMonths.push({
+                        name: monthOrder[idx],
+                        revenue: monthlyRevenue[monthOrder[idx]] || 0
+                    });
+                }
+                setRevenueData(displayMonths);
+
+                // 3. Calculate Growth (Current month vs Last month)
+                const thisMonth = monthOrder[currentMonthIdx];
+                const lastMonth = monthOrder[(currentMonthIdx - 1 + 12) % 12];
+                const currentRev = monthlyRevenue[thisMonth] || 0;
+                const pastRev = monthlyRevenue[lastMonth] || 0;
+
+                let growthStr = "0%";
+                if (pastRev > 0) {
+                    const growthNum = ((currentRev - pastRev) / pastRev) * 100;
+                    growthStr = `${growthNum >= 0 ? '+' : ''}${growthNum.toFixed(1)}%`;
+                } else if (currentRev > 0) {
+                    growthStr = "+100%";
+                }
+
+                setStats(prev => ({
+                    ...prev,
+                    growth: growthStr
                 }));
             },
             (error) => console.error("Dashboard Projects Error:", error)
@@ -61,12 +94,36 @@ const Dashboard = () => {
 
         const unsubStudents = onSnapshot(collection(db, "students"),
             (snapshot) => {
+                const studentsData = snapshot?.docs?.map(doc => doc.data()) || [];
                 setStats(prev => ({
                     ...prev,
                     activeStudents: snapshot?.size || 0
                 }));
-                // Simulated slight delay for skeleton demo
-                setTimeout(() => setLoading(false), 800);
+
+                // Group students by Day of Week
+                const weeklyStats: Record<string, number> = {
+                    'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0
+                };
+
+                studentsData.forEach((s: any) => {
+                    const date = s.createdAt?.toDate ? s.createdAt.toDate() : new Date();
+                    const day = date.toLocaleString('default', { weekday: 'short' });
+                    if (weeklyStats[day] !== undefined) {
+                        weeklyStats[day]++;
+                    }
+                });
+
+                setStudentGrowthData([
+                    { name: 'Mon', count: weeklyStats['Mon'] },
+                    { name: 'Tue', count: weeklyStats['Tue'] },
+                    { name: 'Wed', count: weeklyStats['Wed'] },
+                    { name: 'Thu', count: weeklyStats['Thu'] },
+                    { name: 'Fri', count: weeklyStats['Fri'] },
+                    { name: 'Sat', count: weeklyStats['Sat'] },
+                    { name: 'Sun', count: weeklyStats['Sun'] },
+                ]);
+
+                setLoading(false);
             },
             (error) => {
                 console.error("Dashboard Students Error:", error);
@@ -146,81 +203,85 @@ const Dashboard = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {statCards.map((stat, index) => (
-                    <Card key={index} className="transition-all hover:translate-y-[-4px] hover:shadow-neo-lg dark:bg-gray-800 dark:border-gray-700 overflow-hidden relative group">
-                        <div className={cn("absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 transition-transform group-hover:scale-150", stat.color)} />
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
-                            <CardTitle className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                                {stat.title}
-                            </CardTitle>
-                            <div className={cn("p-2 rounded-lg border-2 border-black shadow-neo-sm dark:border-gray-600 transition-colors", stat.color)}>
-                                <stat.icon size={18} className="text-black" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-black dark:text-white mb-1">{stat.value}</div>
-                            <div className="flex items-center gap-1">
-                                {stat.trend === 'up' && <ArrowUpRight size={14} className="text-green-500" />}
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{stat.change}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                {statCards
+                    .filter(stat => user?.role === 'admin' || (stat.title !== 'Total Revenue' && stat.title !== 'Growth Rate'))
+                    .map((stat, index) => (
+                        <Card key={index} className="transition-all hover:translate-y-[-4px] hover:shadow-neo-lg dark:bg-gray-800 dark:border-gray-700 overflow-hidden relative group">
+                            <div className={cn("absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 transition-transform group-hover:scale-150", stat.color)} />
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
+                                <CardTitle className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                                    {stat.title}
+                                </CardTitle>
+                                <div className={cn("p-2 rounded-lg border-2 border-black shadow-neo-sm dark:border-gray-600 transition-colors", stat.color)}>
+                                    <stat.icon size={18} className="text-black" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-black dark:text-white mb-1">{stat.value}</div>
+                                <div className="flex items-center gap-1">
+                                    {stat.trend === 'up' && <ArrowUpRight size={14} className="text-green-500" />}
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{stat.change}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Revenue Chart */}
-                <Card className="lg:col-span-2 dark:bg-gray-800 dark:border-gray-700">
-                    <CardHeader className="border-b-2 border-dashed border-gray-100 dark:border-gray-700">
-                        <CardTitle className="flex items-center gap-2 dark:text-white">
-                            <TrendingUp size={20} className="text-spark-orange" /> Revenue Growth
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[300px] mt-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={revenueData}>
-                                <defs>
-                                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                <XAxis
-                                    dataKey="name"
-                                    stroke="#9ca3af"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                />
-                                <YAxis
-                                    stroke="#9ca3af"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(value) => `$${value}`}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#000',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        color: '#fff'
-                                    }}
-                                    itemStyle={{ color: '#fff' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="revenue"
-                                    stroke="#f97316"
-                                    strokeWidth={4}
-                                    fillOpacity={1}
-                                    fill="url(#colorRev)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                {/* Revenue Chart - ADMIN ONLY */}
+                {user?.role === 'admin' && (
+                    <Card className="lg:col-span-2 dark:bg-gray-800 dark:border-gray-700">
+                        <CardHeader className="border-b-2 border-dashed border-gray-100 dark:border-gray-700">
+                            <CardTitle className="flex items-center gap-2 dark:text-white">
+                                <TrendingUp size={20} className="text-spark-orange" /> Revenue Growth
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-[300px] mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={revenueData}>
+                                    <defs>
+                                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                    <XAxis
+                                        dataKey="name"
+                                        stroke="#9ca3af"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+                                    <YAxis
+                                        stroke="#9ca3af"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) => `$${value}`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#000',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            color: '#fff'
+                                        }}
+                                        itemStyle={{ color: '#fff' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="revenue"
+                                        stroke="#f97316"
+                                        strokeWidth={4}
+                                        fillOpacity={1}
+                                        fill="url(#colorRev)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Smaller Activity Chart */}
                 <Card className="dark:bg-gray-800 dark:border-gray-700">
@@ -301,12 +362,14 @@ const Dashboard = () => {
                             </button>
                             <button
                                 className="flex flex-col items-center justify-center p-6 border-2 border-black dark:border-gray-600 bg-white dark:bg-gray-900 shadow-neo-sm hover:shadow-neo-lg hover:-translate-y-1 transition-all group"
-                                onClick={() => window.location.href = '/academy/students'}
+                                onClick={() => window.location.href = '/academy'}
                             >
                                 <div className="p-3 bg-spark-purple rounded-full border-2 border-black mb-3 group-hover:-rotate-12 transition-transform shadow-neo-sm text-white">
                                     <Users size={24} />
                                 </div>
-                                <span className="font-black text-xs uppercase dark:text-white">Enroll Student</span>
+                                <span className="font-black text-xs uppercase dark:text-white">
+                                    {user?.role === 'admin' ? 'Enroll Student' : 'View Academy'}
+                                </span>
                             </button>
                         </div>
                     </CardContent>

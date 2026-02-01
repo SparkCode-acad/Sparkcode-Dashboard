@@ -8,8 +8,9 @@ import { Search, Plus, BookOpen, Users, GraduationCap } from 'lucide-react';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useToast } from '../context/ToastContext';
 import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 // Tabs component for internal navigation
 const Tabs = ({ activeTab, onTabChange }: { activeTab: string, onTabChange: (tab: string) => void }) => (
@@ -50,6 +51,7 @@ interface Course {
 const Academy = () => {
     const { user } = useAuth();
     const { logActivity } = useNotifications();
+    const { showToast, showConfirm } = useToast();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState('Dashboard');
     const [students, setStudents] = useState<Student[]>([]);
@@ -60,6 +62,8 @@ const Academy = () => {
     // Modal State
     const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
     const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingCourse, setEditingCourse] = useState<Course | null>(null);
 
     // Form Data
     const [newStudent, setNewStudent] = useState({ name: '', course: '', payment: 'Pending', status: 'Active', progress: 0 });
@@ -107,9 +111,13 @@ const Academy = () => {
         e.preventDefault();
         setActionLoading(true);
         try {
-            await addDoc(collection(db, "students"), newStudent);
+            await addDoc(collection(db, "students"), {
+                ...newStudent,
+                createdAt: serverTimestamp()
+            });
             await logActivity(`Enrolled student ${newStudent.name} in ${newStudent.course}`, 'success', user?.name);
             setIsStudentModalOpen(false);
+            showToast("Student enrolled successfully!");
             setNewStudent({ name: '', course: '', payment: 'Pending', status: 'Active', progress: 0 });
         } catch (error: any) {
             console.error("Failed to enroll student", error);
@@ -123,9 +131,13 @@ const Academy = () => {
         e.preventDefault();
         setActionLoading(true);
         try {
-            await addDoc(collection(db, "courses"), newCourse);
+            await addDoc(collection(db, "courses"), {
+                ...newCourse,
+                createdAt: serverTimestamp()
+            });
             await logActivity(`Created new course: ${newCourse.title}`, 'success', user?.name);
             setIsCourseModalOpen(false);
+            showToast("Course created successfully!");
             setNewCourse({ title: '', instructor: '', duration: '', price: '', students: 0 });
         } catch (error: any) {
             console.error("Failed to create course", error);
@@ -135,11 +147,30 @@ const Academy = () => {
         }
     };
 
+    const handleUpdateCourse = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingCourse) return;
+        setActionLoading(true);
+        try {
+            const { id, ...data } = editingCourse;
+            await updateDoc(doc(db, "courses", id), data);
+            await logActivity(`Updated course: ${editingCourse.title}`, 'info', user?.name);
+            setIsEditModalOpen(false);
+            showToast("Course updated!");
+            setEditingCourse(null);
+        } catch (error: any) {
+            console.error("Failed to update course", error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const handleDeleteStudent = async (id: string) => {
-        if (confirm("Delete this student?")) {
+        showConfirm("Remove Student", "Are you sure you want to delete this student record? This cannot be undone.", async () => {
             await deleteDoc(doc(db, "students", id));
             await logActivity(`Removed student from records`, 'warning', user?.name);
-        }
+            showToast("Student record deleted", "warning");
+        });
     };
 
     const handleActionClick = () => {
@@ -289,14 +320,24 @@ const Academy = () => {
                                             <span className="text-xl font-bold bg-spark-yellow px-2 border border-black shadow-neo-sm transform -rotate-2">
                                                 {course.price}
                                             </span>
-                                            <div className="flex gap-2">
-                                                <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => {
-                                                    if (confirm("Delete this course?")) deleteDoc(doc(db, "courses", course.id));
-                                                }}>
-                                                    Delete
-                                                </Button>
-                                                <Button size="sm" variant="default">Manage</Button>
-                                            </div>
+                                            {user?.role === 'admin' && (
+                                                <div className="flex gap-2">
+                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => {
+                                                        showConfirm("Delete Course", `Are you sure you want to delete "${course.title}"?`, async () => {
+                                                            await deleteDoc(doc(db, "courses", course.id));
+                                                            showToast("Course deleted", "warning");
+                                                        });
+                                                    }}>
+                                                        Delete
+                                                    </Button>
+                                                    <Button size="sm" variant="default" onClick={() => {
+                                                        setEditingCourse(course);
+                                                        setIsEditModalOpen(true);
+                                                    }}>
+                                                        Manage
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -410,6 +451,52 @@ const Academy = () => {
                         {actionLoading ? "Creating..." : "Create Course"}
                     </Button>
                 </form>
+            </Modal>
+            {/* EDIT COURSE MODAL */}
+            <Modal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                title="Edit Course Details"
+            >
+                {editingCourse && (
+                    <form onSubmit={handleUpdateCourse} className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Course Title</label>
+                            <Input
+                                required
+                                value={editingCourse.title}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, title: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Instructor</label>
+                            <Input
+                                required
+                                value={editingCourse.instructor}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, instructor: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold">Duration</label>
+                                <Input
+                                    value={editingCourse.duration}
+                                    onChange={(e) => setEditingCourse({ ...editingCourse, duration: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold">Price</label>
+                                <Input
+                                    value={editingCourse.price}
+                                    onChange={(e) => setEditingCourse({ ...editingCourse, price: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <Button type="submit" className="w-full mt-4" disabled={actionLoading}>
+                            {actionLoading ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </form>
+                )}
             </Modal>
         </div>
     );
