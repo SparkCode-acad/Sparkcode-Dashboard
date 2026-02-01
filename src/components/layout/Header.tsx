@@ -3,10 +3,12 @@ import { Bell, Search, Menu } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useNotifications } from '../../context/NotificationContext';
+import { useCommand } from '../../context/CommandContext';
 
 const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
     const navigate = useNavigate();
     const { unreadCount } = useNotifications();
+    const { setIsOpen } = useCommand();
 
     return (
         <header className="h-16 border-b-2 border-black bg-spark-white flex items-center justify-between px-6 sticky top-0 z-50">
@@ -15,9 +17,13 @@ const Header = ({ onMenuClick }: { onMenuClick?: () => void }) => {
                     <Menu size={20} />
                 </Button>
                 <div className="max-w-md w-full hidden md:block">
-                    <div className="relative">
+                    <div className="relative cursor-pointer" onClick={() => setIsOpen(true)}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                        <Input placeholder="Search projects, team..." className="pl-10" />
+                        <Input
+                            placeholder="Search projects, team..."
+                            className="pl-10 cursor-pointer pointer-events-none"
+                            readOnly
+                        />
                     </div>
                 </div>
             </div>

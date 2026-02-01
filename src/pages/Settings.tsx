@@ -8,29 +8,25 @@ import { useNotifications } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../hooks/useTheme';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { cn, formatRole } from '../lib/utils';
 
 const Settings = () => {
     const { user } = useAuth();
     const { logActivity } = useNotifications();
     const { showToast } = useToast();
-    const { theme, setTheme, companyName, setCompanyName, logoUrl, setLogoUrl } = useTheme();
+    const { theme, setTheme, companyName, setCompanyName } = useTheme();
 
     // Internal state for form handling
     const [loading, setLoading] = useState(false);
     const [localCompanyName, setLocalCompanyName] = useState(companyName);
     const [localTheme, setLocalTheme] = useState(theme);
-    const [localLogoUrl, setLocalLogoUrl] = useState(logoUrl);
-    const [uploading, setUploading] = useState(false);
 
     // Initial sync from context
     useEffect(() => {
         if (companyName && !localCompanyName) setLocalCompanyName(companyName);
         if (theme && !localTheme) setLocalTheme(theme);
-        if (logoUrl && !localLogoUrl) setLocalLogoUrl(logoUrl);
-    }, [companyName, theme, logoUrl]);
+    }, [companyName, theme]);
 
     // Initial sync from Auth context for profile
     const [profile, setProfile] = useState({
@@ -81,63 +77,6 @@ const Settings = () => {
         fetchSettings();
     }, []);
 
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) {
-            console.log("No file selected");
-            return;
-        }
-
-        console.log("Starting logo upload for", file.name, "Size:", file.size);
-        setUploading(true);
-        try {
-            const storagePath = `logos/dashboard_logo_${Date.now()}`;
-            console.log("Storage path:", storagePath);
-            const storageRef = ref(storage, storagePath);
-
-            const uploadTask = uploadBytesResumable(storageRef, file);
-
-            await new Promise<void>((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        console.log(`Logo upload progress: ${progress.toFixed(2)}%`);
-                    },
-                    (error: any) => {
-                        console.error("Logo upload failed:", error);
-                        reject(error);
-                    },
-                    async () => {
-                        console.log("Logo file uploaded successfully to storage");
-                        try {
-                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                            console.log("Download URL obtained:", downloadURL);
-                            setLocalLogoUrl(downloadURL);
-                            resolve();
-                        } catch (err) {
-                            console.error("Error getting logo download URL:", err);
-                            reject(err);
-                        }
-                    }
-                );
-            });
-
-            await logActivity(`Uploaded new dashboard logo`, 'info', user?.name);
-            console.log("Activity logged");
-        } catch (error: any) {
-            console.error("Detailed error uploading logo:", error);
-            let userMessage = error.message || "Unknown error";
-
-            if (error.code === "storage/unauthorized" || error.message?.includes("ERR_FAILED")) {
-                userMessage = "Upload blocked by browser or permissions. \n\n1. Check if an AdBlocker is blocking Firebase. \n2. Ensure CORS is allowed for localhost in Firebase Console. \n3. Verify Storage is enabled in the Firebase Console.";
-            }
-
-            showToast("Upload failed: " + userMessage, "error");
-        } finally {
-            console.log("Upload process finished");
-            setUploading(false);
-        }
-    };
 
     const handleSave = async () => {
         setLoading(true);
@@ -146,7 +85,6 @@ const Settings = () => {
             await setDoc(doc(db, "config", "global_settings"), {
                 companyName: localCompanyName,
                 theme: localTheme,
-                logoUrl: localLogoUrl,
                 updatedAt: new Date(),
                 updatedBy: user?.email
             }, { merge: true });
@@ -154,7 +92,6 @@ const Settings = () => {
             // Optimistically update Context
             setCompanyName(localCompanyName);
             setTheme(localTheme);
-            setLogoUrl(localLogoUrl);
 
             await logActivity(`Updated system configuration`, 'info', user?.name);
 
@@ -199,35 +136,6 @@ const Settings = () => {
                                 onChange={(e) => setLocalCompanyName(e.target.value)}
                                 placeholder="e.g. Sparkcode"
                             />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold dark:text-gray-300">Dashboard Logo</label>
-                            <div className="flex items-center gap-4 p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
-                                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-600">
-                                    {localLogoUrl ? (
-                                        <img src={localLogoUrl} alt="Logo Preview" className="w-full h-full object-contain" />
-                                    ) : (
-                                        <Globe size={24} className="text-gray-400" />
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <input
-                                        type="file"
-                                        id="logo-upload"
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={handleLogoUpload}
-                                    />
-                                    <label
-                                        htmlFor="logo-upload"
-                                        className="inline-flex items-center px-4 py-2 bg-black dark:bg-spark-purple text-white text-sm font-bold rounded cursor-pointer hover:opacity-90 transition-opacity"
-                                    >
-                                        {uploading ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
-                                        {uploading ? 'Uploading...' : 'Choose Logo'}
-                                    </label>
-                                    <p className="text-[10px] text-gray-400 mt-1">Recommended size: 200x200px (PNG, SVG, JPG)</p>
-                                </div>
-                            </div>
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-bold dark:text-gray-300">Dashboard Theme</label>

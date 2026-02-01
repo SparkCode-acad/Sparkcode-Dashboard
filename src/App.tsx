@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { CommandProvider } from './context/CommandContext';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import MainLayout from './components/layout/MainLayout';
 import Dashboard from './pages/Dashboard';
@@ -14,6 +15,7 @@ import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Kanban from './pages/Kanban';
 import Login from './pages/Login';
+import Team from './pages/Team';
 
 // Protected Route Wrapper
 const ProtectedRoute = () => {
@@ -48,37 +50,40 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <ToastProvider>
-          <NotificationProvider>
-            <ThemeProvider>
-              <Router>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
+        <CommandProvider>
+          <ToastProvider>
+            <NotificationProvider>
+              <ThemeProvider>
+                <Router>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
 
-                  <Route path="/" element={<ProtectedRoute />}>
-                    <Route element={<MainLayout />}>
-                      <Route index element={<Dashboard />} />
-                      <Route path="projects" element={<Projects />} />
-                      <Route path="projects/board" element={<Kanban />} />
-                      <Route path="clients" element={<Clients />} />
-                      <Route path="academy" element={<Academy />} />
-                      <Route path="academy/students" element={<Academy />} />
-                      <Route path="academy/courses" element={<Academy />} />
-                      <Route element={<RoleGuard allowedRoles={['admin']} />}>
-                        <Route path="finance" element={<Finance />} />
-                        <Route path="settings" element={<Settings />} />
+                    <Route path="/" element={<ProtectedRoute />}>
+                      <Route element={<MainLayout />}>
+                        <Route index element={<Dashboard />} />
+                        <Route path="team" element={<Team />} />
+                        <Route path="projects" element={<Projects />} />
+                        <Route path="projects/board" element={<Kanban />} />
+                        <Route path="clients" element={<Clients />} />
+                        <Route path="academy" element={<Academy />} />
+                        <Route path="academy/students" element={<Academy />} />
+                        <Route path="academy/courses" element={<Academy />} />
+                        <Route element={<RoleGuard allowedRoles={['admin']} />}>
+                          <Route path="finance" element={<Finance />} />
+                          <Route path="settings" element={<Settings />} />
+                        </Route>
+                        <Route path="notifications" element={<Notifications />} />
                       </Route>
-                      <Route path="notifications" element={<Notifications />} />
                     </Route>
-                  </Route>
 
-                  {/* Catch-all: Redirect to Home (Safe Redirect) */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Router>
-            </ThemeProvider>
-          </NotificationProvider>
-        </ToastProvider>
+                    {/* Catch-all: Redirect to Home (Safe Redirect) */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Router>
+              </ThemeProvider>
+            </NotificationProvider>
+          </ToastProvider>
+        </CommandProvider>
       </AuthProvider>
     </ErrorBoundary>
   )

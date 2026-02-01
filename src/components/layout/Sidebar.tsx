@@ -28,7 +28,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
     const location = useLocation();
     const { logout, user } = useAuth();
     const { theme, toggleTheme, companyName, logoUrl } = useTheme();
-    const [counts, setCounts] = useState({ projects: 0, students: 0 });
+    const [counts, setCounts] = useState({ projects: 0, students: 0, team: 0 });
 
     useEffect(() => {
         const unsubProjects = onSnapshot(collection(db, "projects"),
@@ -39,9 +39,14 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
             snap => setCounts(prev => ({ ...prev, students: snap.size })),
             error => console.error("Sidebar Students Error:", error)
         );
+        const unsubTeam = onSnapshot(collection(db, "team"),
+            snap => setCounts(prev => ({ ...prev, team: snap.size })),
+            error => console.error("Sidebar Team Error:", error)
+        );
         return () => {
             unsubProjects();
             unsubStudents();
+            unsubTeam();
         };
     }, []);
 
@@ -50,6 +55,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
             section: "Agency",
             items: [
                 { name: "Overview", icon: LayoutDashboard, path: "/" },
+                { name: "Team", icon: Users, path: "/team", count: counts.team },
                 { name: "Projects", icon: Briefcase, path: "/projects", count: counts.projects },
                 { name: "Clients", icon: Users, path: "/clients" },
                 { name: "Kanban", icon: Layers, path: "/projects/board" },
@@ -59,7 +65,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
             section: "Academy",
             items: [
                 { name: "Dashboard", icon: GraduationCap, path: "/academy" },
-                { name: "Students", icon: Users, path: "/academy/students", count: counts.students },
+                { name: "Students", icon: GraduationCap, path: "/academy/students", count: counts.students },
                 { name: "Courses", icon: BookOpen, path: "/academy/courses" },
             ]
         },

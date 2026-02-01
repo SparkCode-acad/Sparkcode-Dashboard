@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -51,8 +52,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             {children}
 
             {/* Confirmation Dialog */}
-            {confirm && (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            {confirm && createPortal(
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white w-full max-w-sm mx-4 border-2 border-black shadow-neo-lg p-6 animate-in zoom-in-95 duration-200">
                         <h3 className="text-xl font-bold uppercase mb-2">{confirm.title}</h3>
                         <p className="text-gray-600 font-medium mb-6">{confirm.message}</p>
@@ -71,7 +72,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Command, X, Briefcase, Users, Settings, Bell, DollarSign, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useCommand } from '../../context/CommandContext';
 
 interface CommandItem {
     id: string;
@@ -11,7 +12,7 @@ interface CommandItem {
 }
 
 export function CommandPalette() {
-    const [isOpen, setIsOpen] = useState(false);
+    const { isOpen, setIsOpen, toggle } = useCommand();
     const [query, setQuery] = useState('');
     const navigate = useNavigate();
     const inputRef = useRef<HTMLInputElement>(null);
@@ -20,6 +21,7 @@ export function CommandPalette() {
         { id: '1', name: 'Dashboard', icon: Home, path: '/', section: 'Navigation' },
         { id: '2', name: 'Projects', icon: Briefcase, path: '/projects', section: 'Navigation' },
         { id: '3', name: 'Students', icon: Users, path: '/academy/students', section: 'Navigation' },
+        { id: 'team', name: 'Team', icon: Users, path: '/team', section: 'Navigation' },
         { id: '4', name: 'Finance', icon: DollarSign, path: '/finance', section: 'Navigation' },
         { id: '5', name: 'Notifications', icon: Bell, path: '/notifications', section: 'Navigation' },
         { id: '6', name: 'Settings', icon: Settings, path: '/settings', section: 'Navigation' },
@@ -29,7 +31,7 @@ export function CommandPalette() {
         const down = (e: KeyboardEvent) => {
             if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                setIsOpen((open) => !open);
+                toggle();
             }
             if (e.key === 'Escape') {
                 setIsOpen(false);
