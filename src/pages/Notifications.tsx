@@ -23,7 +23,7 @@ const Notifications = () => {
         try {
             await logActivity(message, type, user?.name || 'System', user?.role || 'student');
             setMessage('');
-            showToast(user?.role === 'admin' ? "Announcement broadcasted!" : "Message sent to team!");
+            showToast("Announcement broadcasted!");
         } catch (error) {
             console.error("Error sending notification:", error);
         } finally {
@@ -52,7 +52,7 @@ const Notifications = () => {
                 <Card className="lg:col-span-1 dark:bg-gray-800 dark:border-gray-700 h-fit">
                     <CardHeader className="border-b-black dark:border-gray-600">
                         <CardTitle className="flex items-center gap-2 dark:text-white">
-                            <Send size={20} /> {user?.role === 'admin' ? 'Send Announcement' : 'Send Message'}
+                            <Send size={20} /> Send Announcement
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
@@ -61,7 +61,7 @@ const Notifications = () => {
                                 <label className="text-sm font-bold dark:text-gray-300">Message</label>
                                 <textarea
                                     className="w-full p-3 border-2 border-black dark:border-gray-700 rounded bg-white dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-spark-orange outline-none resize-none h-32"
-                                    placeholder={user?.role === 'admin' ? "Type announcement here..." : "Type your message or feedback for the team..."}
+                                    placeholder="Type announcement here..."
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
                                     required
@@ -129,8 +129,7 @@ const Notifications = () => {
                                                     {activity.userRole && (
                                                         <span className={cn(
                                                             "text-[8px] px-1 border border-black rounded shadow-neo-sm font-black uppercase",
-                                                            activity.userRole === 'admin' ? "bg-spark-yellow text-black" :
-                                                                activity.userRole === 'System' ? "bg-black text-white" : "bg-spark-purple text-white"
+                                                            activity.userRole === 'admin' ? "bg-spark-yellow text-black" : "bg-spark-purple text-white"
                                                         )}>
                                                             {formatRole(activity.userRole)}
                                                         </span>

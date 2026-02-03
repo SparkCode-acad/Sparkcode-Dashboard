@@ -9,7 +9,6 @@ import { useToast } from '../context/ToastContext';
 import { useTheme } from '../hooks/useTheme';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { cn, formatRole } from '../lib/utils';
 
 const Settings = () => {
     const { user } = useAuth();
@@ -195,13 +194,10 @@ const Settings = () => {
                         <div className="space-y-2">
                             <label className="text-sm font-bold dark:text-gray-300">Your Identity/Role</label>
                             <div className="flex items-center gap-2">
-                                <span className={cn(
-                                    "px-3 py-1 border-2 border-black text-xs font-black uppercase shadow-neo-sm rounded",
-                                    profile.role === 'admin' ? "bg-spark-yellow" : "bg-spark-purple text-white"
-                                )}>
-                                    {formatRole(profile.role)}
+                                <span className="px-3 py-1 border-2 border-black text-xs font-black uppercase shadow-neo-sm rounded bg-spark-purple text-white">
+                                    Team Member
                                 </span>
-                                <p className="text-[10px] font-bold text-gray-400 italic">Roles are assigned by superior administrators.</p>
+                                <p className="text-[10px] font-bold text-gray-400 italic">Full access enabled for all team members.</p>
                             </div>
                         </div>
                     </CardContent>

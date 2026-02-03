@@ -4,7 +4,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
-import { cn, formatRole } from "../../lib/utils";
+import { cn } from "../../lib/utils";
 import {
     LayoutDashboard,
     Briefcase,
@@ -103,7 +103,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
                         </h1>
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{formatRole(user?.role)}</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Team Member</span>
                         </div>
                     </div>
                 </div>
@@ -166,11 +166,8 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
                         <div className="overflow-hidden text-black dark:text-white">
                             <div className="flex items-center gap-1">
                                 <p className="text-xs font-bold truncate w-20">{user?.name || 'User'}</p>
-                                <span className={cn(
-                                    "text-[8px] px-1 border border-black rounded shadow-neo-sm font-black uppercase",
-                                    user?.role === 'admin' ? "bg-spark-yellow" : "bg-spark-purple text-white"
-                                )}>
-                                    {formatRole(user?.role)}
+                                <span className="text-[8px] px-1 border border-black rounded shadow-neo-sm font-black uppercase bg-spark-purple text-white">
+                                    Team Member
                                 </span>
                             </div>
                             <p className="text-[10px] text-gray-500 truncate w-24">{user?.email || 'Guest'}</p>

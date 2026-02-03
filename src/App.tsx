@@ -35,16 +35,6 @@ const ProtectedRoute = () => {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
-// Role-Based Guard Wrapper
-const RoleGuard = ({ allowedRoles }: { allowedRoles: string[] }) => {
-  const { user } = useAuth();
-
-  if (!user || !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <Outlet />;
-};
 
 function App() {
   return (
@@ -68,10 +58,8 @@ function App() {
                         <Route path="academy" element={<Academy />} />
                         <Route path="academy/students" element={<Academy />} />
                         <Route path="academy/courses" element={<Academy />} />
-                        <Route element={<RoleGuard allowedRoles={['admin']} />}>
-                          <Route path="finance" element={<Finance />} />
-                          <Route path="settings" element={<Settings />} />
-                        </Route>
+                        <Route path="finance" element={<Finance />} />
+                        <Route path="settings" element={<Settings />} />
                         <Route path="notifications" element={<Notifications />} />
                       </Route>
                     </Route>
