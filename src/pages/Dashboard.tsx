@@ -4,7 +4,6 @@ import { DollarSign, Users, Briefcase, TrendingUp, ArrowUpRight, BarChart3 } fro
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNotifications } from "../context/NotificationContext";
-import { useAuth } from "../context/AuthContext";
 import { SkeletonCard, Skeleton } from "../components/ui/Skeleton";
 import { cn } from "../lib/utils";
 import {
@@ -14,7 +13,6 @@ import {
 
 const Dashboard = () => {
     const { activities } = useNotifications();
-    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         revenue: 0,
