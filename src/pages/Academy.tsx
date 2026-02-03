@@ -275,7 +275,8 @@ const Academy = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-white border-2 border-black shadow-neo overflow-x-auto">
+                            {/* Desktop Table View */}
+                            <div className="hidden lg:block bg-white border-2 border-black shadow-neo overflow-x-auto">
                                 <table className="w-full text-left bg-white">
                                     <thead className="bg-gray-50 border-b-2 border-black">
                                         <tr>
@@ -283,7 +284,7 @@ const Academy = () => {
                                             <th className="p-4 font-bold border-r border-black">Course</th>
                                             <th className="p-4 font-bold border-r border-black">Status</th>
                                             <th className="p-4 font-bold border-r border-black">Progress</th>
-                                            <th className="p-4 font-bold">Payment</th>
+                                            <th className="p-4 font-bold">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -304,14 +305,8 @@ const Academy = () => {
                                                         <span className="text-xs font-black">{student.progress}%</span>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 font-mono font-bold flex justify-between items-center transition-colors">
-                                                    <span className={cn(
-                                                        "font-black tracking-wider uppercase text-xs",
-                                                        student.payment === 'Paid' ? 'text-green-600' : 'text-red-500 animate-pulse'
-                                                    )}>
-                                                        {student.payment}
-                                                    </span>
-                                                    <div className="flex gap-3 ml-6">
+                                                <td className="p-4 font-mono font-bold">
+                                                    <div className="flex gap-3">
                                                         {user?.role === 'admin' && (
                                                             <button
                                                                 onClick={() => {
@@ -337,6 +332,72 @@ const Academy = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="lg:hidden grid grid-cols-1 gap-4">
+                                {students.map((student) => (
+                                    <Card key={student.id} className="border-2 border-black shadow-neo-sm overflow-hidden bg-white">
+                                        <div className="p-4 border-b-2 border-black bg-gray-50 flex justify-between items-center">
+                                            <div>
+                                                <h3 className="font-black text-lg uppercase tracking-tight">{student.name}</h3>
+                                                <p className="text-xs font-bold text-gray-500 uppercase">{student.course}</p>
+                                            </div>
+                                            <Badge variant={student.status === 'Active' ? 'default' : 'secondary'} className="text-[10px]">
+                                                {student.status}
+                                            </Badge>
+                                        </div>
+                                        <CardContent className="p-4 space-y-4">
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-[10px] font-black uppercase text-gray-400">
+                                                    <span>Course Progress</span>
+                                                    <span>{student.progress}%</span>
+                                                </div>
+                                                <div className="w-full h-3 bg-gray-200 border-2 border-black rounded-none overflow-hidden p-[1px]">
+                                                    <div
+                                                        className="h-full bg-spark-purple transition-all duration-500"
+                                                        style={{ width: `${student.progress}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black uppercase text-gray-400">Payment</span>
+                                                    <span className={cn(
+                                                        "font-black text-sm uppercase",
+                                                        student.payment === 'Paid' ? 'text-green-600' : 'text-red-500 animate-pulse'
+                                                    )}>
+                                                        {student.payment}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex gap-3">
+                                                    {user?.role === 'admin' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingStudent(student);
+                                                                setIsStudentEditModalOpen(true);
+                                                            }}
+                                                            className="flex items-center justify-center p-3 bg-spark-blue border-2 border-black text-white shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                                                            title="Edit Student"
+                                                        >
+                                                            <Edit2 size={20} />
+                                                            <span className="ml-2 font-black text-xs uppercase">Edit</span>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteStudent(student.id.toString())}
+                                                        className="flex items-center justify-center p-3 bg-red-500 border-2 border-black text-white shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                                                        title="Delete Student"
+                                                    >
+                                                        <X size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
                             </div>
                         </div>
                     )}
