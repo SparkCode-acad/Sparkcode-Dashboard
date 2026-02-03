@@ -307,18 +307,16 @@ const Academy = () => {
                                                 </td>
                                                 <td className="p-4 font-mono font-bold">
                                                     <div className="flex gap-3">
-                                                        {user?.role === 'admin' && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingStudent(student);
-                                                                    setIsStudentEditModalOpen(true);
-                                                                }}
-                                                                className="flex items-center justify-center p-2 bg-spark-blue/10 border-2 border-spark-blue text-spark-blue hover:bg-spark-blue hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-                                                                title="Edit Student"
-                                                            >
-                                                                <Edit2 size={16} />
-                                                            </button>
-                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingStudent(student);
+                                                                setIsStudentEditModalOpen(true);
+                                                            }}
+                                                            className="flex items-center justify-center p-2 bg-spark-blue/10 border-2 border-spark-blue text-spark-blue hover:bg-spark-blue hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                                                            title="Edit Student"
+                                                        >
+                                                            <Edit2 size={16} />
+                                                        </button>
                                                         <button
                                                             onClick={() => handleDeleteStudent(student.id.toString())}
                                                             className="flex items-center justify-center p-2 bg-red-50 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
@@ -373,19 +371,17 @@ const Academy = () => {
                                                 </div>
 
                                                 <div className="flex gap-3">
-                                                    {user?.role === 'admin' && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingStudent(student);
-                                                                setIsStudentEditModalOpen(true);
-                                                            }}
-                                                            className="flex items-center justify-center p-3 bg-spark-blue border-2 border-black text-white shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-                                                            title="Edit Student"
-                                                        >
-                                                            <Edit2 size={20} />
-                                                            <span className="ml-2 font-black text-xs uppercase">Edit</span>
-                                                        </button>
-                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingStudent(student);
+                                                            setIsStudentEditModalOpen(true);
+                                                        }}
+                                                        className="flex items-center justify-center p-3 bg-spark-blue border-2 border-black text-white shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                                                        title="Edit Student"
+                                                    >
+                                                        <Edit2 size={20} />
+                                                        <span className="ml-2 font-black text-xs uppercase">Edit</span>
+                                                    </button>
                                                     <button
                                                         onClick={() => handleDeleteStudent(student.id.toString())}
                                                         className="flex items-center justify-center p-3 bg-red-500 border-2 border-black text-white shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
@@ -435,24 +431,22 @@ const Academy = () => {
                                                 <span className="text-xl font-bold bg-spark-yellow px-2 border border-black shadow-neo-sm transform -rotate-2">
                                                     {course.price}
                                                 </span>
-                                                {user?.role === 'admin' && (
-                                                    <div className="flex gap-2">
-                                                        <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => {
-                                                            showConfirm("Delete Course", `Are you sure you want to delete "${course.title}"?`, async () => {
-                                                                await deleteDoc(doc(db, "courses", course.id));
-                                                                showToast("Course deleted", "warning");
-                                                            });
-                                                        }}>
-                                                            Delete
-                                                        </Button>
-                                                        <Button size="sm" variant="default" onClick={() => {
-                                                            setEditingCourse(course);
-                                                            setIsEditModalOpen(true);
-                                                        }}>
-                                                            Manage
-                                                        </Button>
-                                                    </div>
-                                                )}
+                                                <div className="flex gap-2">
+                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => {
+                                                        showConfirm("Delete Course", `Are you sure you want to delete "${course.title}"?`, async () => {
+                                                            await deleteDoc(doc(db, "courses", course.id));
+                                                            showToast("Course deleted", "warning");
+                                                        });
+                                                    }}>
+                                                        Delete
+                                                    </Button>
+                                                    <Button size="sm" variant="default" onClick={() => {
+                                                        setEditingCourse(course);
+                                                        setIsEditModalOpen(true);
+                                                    }}>
+                                                        Manage
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
