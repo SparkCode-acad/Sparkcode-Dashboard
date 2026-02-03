@@ -80,26 +80,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
 
     ];
 
-    const filteredSections = menuItems.map(section => ({
-        ...section,
-        items: (section.items as any[]).filter(item => {
-            // General access rules
-            if (user?.role === 'admin') return true;
-
-            // Student/Guest rules
-            if (section.section === "Agency") {
-                // Students can only see Overview and Team, not projects/clients
-                return item.name === "Overview" || item.name === "Team";
-            }
-
-            if (section.section === "General") {
-                // Students can only see Notifications
-                return item.name === "Notifications";
-            }
-
-            return true; // Academy section is open to all for now
-        })
-    })).filter(section => section.items.length > 0);
+    const filteredSections = menuItems;
 
     return (
         <aside className={cn(

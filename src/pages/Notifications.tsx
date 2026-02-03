@@ -68,7 +68,7 @@ const Notifications = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-bold dark:text-gray-300">{user?.role === 'admin' ? 'Notification Type' : 'Urgency'}</label>
+                                <label className="text-sm font-bold dark:text-gray-300">Notification Type</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {(['info', 'success', 'warning', 'error'] as const).map((t) => (
                                         <button
@@ -82,13 +82,13 @@ const Notifications = () => {
                                                     : "border-gray-200 text-gray-400 hover:border-black dark:border-gray-700 dark:hover:border-gray-500"
                                             )}
                                         >
-                                            {user?.role === 'admin' ? t : (t === 'info' ? 'General' : t === 'error' ? 'Urgent' : t)}
+                                            {t}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                             <Button type="submit" className="w-full" disabled={sending}>
-                                {sending ? 'Sending...' : (user?.role === 'admin' ? 'Broadcast Announcement' : 'Send Message')}
+                                {sending ? 'Sending...' : 'Broadcast Announcement'}
                             </Button>
                         </form>
                     </CardContent>

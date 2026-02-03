@@ -204,7 +204,6 @@ const Dashboard = () => {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {statCards
-                    .filter(stat => user?.role === 'admin' || (stat.title !== 'Total Revenue' && stat.title !== 'Growth Rate'))
                     .map((stat, index) => (
                         <Card key={index} className="transition-all hover:translate-y-[-4px] hover:shadow-neo-lg dark:bg-gray-800 dark:border-gray-700 overflow-hidden relative group">
                             <div className={cn("absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 transition-transform group-hover:scale-150", stat.color)} />
@@ -228,60 +227,58 @@ const Dashboard = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Revenue Chart - ADMIN ONLY */}
-                {user?.role === 'admin' && (
-                    <Card className="lg:col-span-2 dark:bg-gray-800 dark:border-gray-700">
-                        <CardHeader className="border-b-2 border-dashed border-gray-100 dark:border-gray-700">
-                            <CardTitle className="flex items-center gap-2 dark:text-white">
-                                <TrendingUp size={20} className="text-spark-orange" /> Revenue Growth
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-[300px] mt-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={revenueData}>
-                                    <defs>
-                                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                    <XAxis
-                                        dataKey="name"
-                                        stroke="#9ca3af"
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
-                                    />
-                                    <YAxis
-                                        stroke="#9ca3af"
-                                        fontSize={12}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickFormatter={(value) => `$${value}`}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: '#000',
-                                            border: 'none',
-                                            borderRadius: '8px',
-                                            color: '#fff'
-                                        }}
-                                        itemStyle={{ color: '#fff' }}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="revenue"
-                                        stroke="#f97316"
-                                        strokeWidth={4}
-                                        fillOpacity={1}
-                                        fill="url(#colorRev)"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                )}
+                {/* Revenue Chart - OPEN TO ALL */}
+                <Card className="lg:col-span-2 dark:bg-gray-800 dark:border-gray-700">
+                    <CardHeader className="border-b-2 border-dashed border-gray-100 dark:border-gray-700">
+                        <CardTitle className="flex items-center gap-2 dark:text-white">
+                            <TrendingUp size={20} className="text-spark-orange" /> Revenue Growth
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[300px] mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={revenueData}>
+                                <defs>
+                                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                <XAxis
+                                    dataKey="name"
+                                    stroke="#9ca3af"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    stroke="#9ca3af"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(value) => `$${value}`}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#000',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        color: '#fff'
+                                    }}
+                                    itemStyle={{ color: '#fff' }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="revenue"
+                                    stroke="#f97316"
+                                    strokeWidth={4}
+                                    fillOpacity={1}
+                                    fill="url(#colorRev)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
 
                 {/* Smaller Activity Chart */}
                 <Card className="dark:bg-gray-800 dark:border-gray-700">
@@ -367,9 +364,7 @@ const Dashboard = () => {
                                 <div className="p-3 bg-spark-purple rounded-full border-2 border-black mb-3 group-hover:-rotate-12 transition-transform shadow-neo-sm text-white">
                                     <Users size={24} />
                                 </div>
-                                <span className="font-black text-xs uppercase dark:text-white">
-                                    {user?.role === 'admin' ? 'Enroll Student' : 'View Academy'}
-                                </span>
+                                <span className="font-black text-xs uppercase dark:text-white">Enroll Student</span>
                             </button>
                         </div>
                     </CardContent>
