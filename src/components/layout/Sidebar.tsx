@@ -88,8 +88,8 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
 
             // Student/Guest rules
             if (section.section === "Agency") {
-                // Students can only see Overview, not projects/clients
-                return item.name === "Overview";
+                // Students can only see Overview and Team, not projects/clients
+                return item.name === "Overview" || item.name === "Team";
             }
 
             if (section.section === "General") {

@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { Firestore, initializeFirestore, getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -36,6 +36,10 @@ try {
 
 // 3. Initialize Auth
 const auth = getAuth(app);
+// Explicitly set persistence to local (survives tab closing)
+setPersistence(auth, browserLocalPersistence).catch(err => {
+    console.error("Auth Persistence Error:", err);
+});
 
 const analytics = getAnalytics(app);
 const storage = getStorage(app);

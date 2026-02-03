@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
-import { Search, Plus, BookOpen, Users, GraduationCap } from 'lucide-react';
+import { Search, Plus, BookOpen, Users, GraduationCap, X } from 'lucide-react';
+import { cn } from '../lib/utils';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -58,12 +59,15 @@ const Academy = () => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Modal State
     const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
     const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isStudentEditModalOpen, setIsStudentEditModalOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
     // Form Data
     const [newStudent, setNewStudent] = useState({ name: '', course: '', payment: 'Pending', status: 'Active', progress: 0 });
@@ -110,6 +114,7 @@ const Academy = () => {
     const handleEnrollStudent = async (e: React.FormEvent) => {
         e.preventDefault();
         setActionLoading(true);
+        setError(null);
         try {
             await addDoc(collection(db, "students"), {
                 ...newStudent,
@@ -121,6 +126,7 @@ const Academy = () => {
             setNewStudent({ name: '', course: '', payment: 'Pending', status: 'Active', progress: 0 });
         } catch (error: any) {
             console.error("Failed to enroll student", error);
+            setError(error.message || "Failed to enroll student. Please try again.");
             logActivity(`Failed to enroll student: ${error.message}`, 'error', user?.name);
         } finally {
             setActionLoading(false);
@@ -141,6 +147,7 @@ const Academy = () => {
             setNewCourse({ title: '', instructor: '', duration: '', price: '', students: 0 });
         } catch (error: any) {
             console.error("Failed to create course", error);
+            setError(error.message || "Failed to create course.");
             logActivity(`Failed to create course: ${error.message}`, 'error', user?.name);
         } finally {
             setActionLoading(false);
@@ -151,6 +158,7 @@ const Academy = () => {
         e.preventDefault();
         if (!editingCourse) return;
         setActionLoading(true);
+        setError(null);
         try {
             const { id, ...data } = editingCourse;
             await updateDoc(doc(db, "courses", id), data);
@@ -160,6 +168,28 @@ const Academy = () => {
             setEditingCourse(null);
         } catch (error: any) {
             console.error("Failed to update course", error);
+            setError(error.message || "Failed to update course.");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleUpdateStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingStudent) return;
+        setActionLoading(true);
+        setError(null);
+        try {
+            const { id, ...data } = editingStudent;
+            await updateDoc(doc(db, "students", id), data);
+            await logActivity(`Updated progress/status for student ${editingStudent.name}`, 'info', user?.name);
+            setIsStudentEditModalOpen(false);
+            showToast("Student updated!");
+            setEditingStudent(null);
+        } catch (error: any) {
+            console.error("Failed to update student", error);
+            setError(error.message || "Failed to update student.");
+            showToast("Failed to update student", "error");
         } finally {
             setActionLoading(false);
         }
@@ -271,19 +301,37 @@ const Academy = () => {
                                                         <div className="w-24 h-2 bg-gray-200 border border-black rounded-full overflow-hidden">
                                                             <div className="h-full bg-spark-purple" style={{ width: `${student.progress}%` }}></div>
                                                         </div>
-                                                        <span className="text-xs font-bold">{student.progress}%</span>
+                                                        <span className="text-xs font-black">{student.progress}%</span>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 font-mono font-bold flex justify-between items-center">
-                                                    <span className={student.payment === 'Paid' ? 'text-green-600' : 'text-red-500'}>
+                                                <td className="p-4 font-mono font-bold flex justify-between items-center transition-colors">
+                                                    <span className={cn(
+                                                        "font-black tracking-wider uppercase text-xs",
+                                                        student.payment === 'Paid' ? 'text-green-600' : 'text-red-500 animate-pulse'
+                                                    )}>
                                                         {student.payment}
                                                     </span>
-                                                    <button
-                                                        onClick={() => handleDeleteStudent(student.id.toString())}
-                                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <Search size={16} className="rotate-45" /> {/* Using Search rotated as cross/delete visual or Trash if available */}
-                                                    </button>
+                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {user?.role === 'admin' && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingStudent(student);
+                                                                    setIsStudentEditModalOpen(true);
+                                                                }}
+                                                                className="text-gray-400 hover:text-spark-orange"
+                                                                title="Edit Student"
+                                                            >
+                                                                <Search size={16} /> {/* Using Search as edit visual placeholder or Edit icon */}
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleDeleteStudent(student.id.toString())}
+                                                            className="text-gray-400 hover:text-red-500"
+                                                            title="Delete Student"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -296,52 +344,59 @@ const Academy = () => {
                     {/* COURSES VIEW */}
                     {activeTab === 'Courses' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {courses.map(course => (
-                                <Card key={course.id} className="hover:shadow-neo-lg transition-all group">
-                                    <div className="h-32 bg-spark-purple border-b-2 border-black flex items-center justify-center p-6 relative overflow-hidden">
-                                        <BookOpen size={64} className="text-white opacity-20 absolute -right-4 -bottom-4 transform rotate-12 group-hover:scale-110 transition-transform" />
-                                        <h3 className="text-2xl font-bold text-white relative z-10 text-center">{course.title}</h3>
-                                    </div>
-                                    <CardContent className="space-y-4 pt-6">
-                                        <div className="flex justify-between items-center text-sm font-bold border-b border-gray-100 pb-2">
-                                            <span className="text-gray-500">Instructor</span>
-                                            <span>{course.instructor}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm font-bold border-b border-gray-100 pb-2">
-                                            <span className="text-gray-500">Duration</span>
-                                            <span>{course.duration}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm font-bold pb-2">
-                                            <span className="text-gray-500">Students</span>
-                                            <span>{course.students}</span>
-                                        </div>
+                            {courses.map((course, index) => {
+                                const colors = ['bg-spark-purple', 'bg-spark-orange', 'bg-spark-blue', 'bg-spark-yellow', 'bg-spark-green'];
+                                const cardColor = colors[index % colors.length];
 
-                                        <div className="flex items-center justify-between pt-2">
-                                            <span className="text-xl font-bold bg-spark-yellow px-2 border border-black shadow-neo-sm transform -rotate-2">
-                                                {course.price}
-                                            </span>
-                                            {user?.role === 'admin' && (
-                                                <div className="flex gap-2">
-                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => {
-                                                        showConfirm("Delete Course", `Are you sure you want to delete "${course.title}"?`, async () => {
-                                                            await deleteDoc(doc(db, "courses", course.id));
-                                                            showToast("Course deleted", "warning");
-                                                        });
-                                                    }}>
-                                                        Delete
-                                                    </Button>
-                                                    <Button size="sm" variant="default" onClick={() => {
-                                                        setEditingCourse(course);
-                                                        setIsEditModalOpen(true);
-                                                    }}>
-                                                        Manage
-                                                    </Button>
-                                                </div>
-                                            )}
+                                return (
+                                    <Card key={course.id} className="hover:shadow-neo-lg transition-all group overflow-hidden border-2 border-black">
+                                        <div className={cn("h-32 border-b-2 border-black flex items-center justify-center p-6 relative overflow-hidden", cardColor)}>
+                                            <BookOpen size={64} className="text-white opacity-20 absolute -right-4 -bottom-4 transform rotate-12 group-hover:scale-110 transition-transform" />
+                                            <h3 className="text-2xl font-black text-white relative z-10 text-center uppercase tracking-tight shadow-sm">{course.title}</h3>
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                                        <CardContent className="space-y-4 pt-6">
+                                            <div className="flex justify-between items-center text-sm font-bold border-b border-gray-100 pb-2">
+                                                <span className="text-gray-500">Instructor</span>
+                                                <span>{course.instructor}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm font-bold border-b border-gray-100 pb-2">
+                                                <span className="text-gray-500">Duration</span>
+                                                <span>{course.duration}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm font-bold pb-2">
+                                                <span className="text-gray-500">Students</span>
+                                                <Badge variant="secondary" className="bg-gray-100">
+                                                    {students.filter(s => s.course === course.title).length} Enrolled
+                                                </Badge>
+                                            </div>
+
+                                            <div className="flex items-center justify-between pt-2">
+                                                <span className="text-xl font-bold bg-spark-yellow px-2 border border-black shadow-neo-sm transform -rotate-2">
+                                                    {course.price}
+                                                </span>
+                                                {user?.role === 'admin' && (
+                                                    <div className="flex gap-2">
+                                                        <Button size="sm" variant="outline" className="text-red-500 border-red-200" onClick={() => {
+                                                            showConfirm("Delete Course", `Are you sure you want to delete "${course.title}"?`, async () => {
+                                                                await deleteDoc(doc(db, "courses", course.id));
+                                                                showToast("Course deleted", "warning");
+                                                            });
+                                                        }}>
+                                                            Delete
+                                                        </Button>
+                                                        <Button size="sm" variant="default" onClick={() => {
+                                                            setEditingCourse(course);
+                                                            setIsEditModalOpen(true);
+                                                        }}>
+                                                            Manage
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
                         </div>
                     )}
                 </>
@@ -354,6 +409,11 @@ const Academy = () => {
                 title="Enroll New Student"
             >
                 <form onSubmit={handleEnrollStudent} className="space-y-4">
+                    {error && (
+                        <div className="bg-red-100 border-2 border-red-500 p-3 rounded-none mb-4">
+                            <p className="text-red-700 font-black text-xs uppercase tracking-widest">{error}</p>
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <label className="text-sm font-bold">Student Name</label>
                         <Input
@@ -494,6 +554,67 @@ const Academy = () => {
                         </div>
                         <Button type="submit" className="w-full mt-4" disabled={actionLoading}>
                             {actionLoading ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </form>
+                )}
+            </Modal>
+
+            {/* EDIT STUDENT MODAL */}
+            <Modal
+                isOpen={isStudentEditModalOpen}
+                onClose={() => setIsStudentEditModalOpen(false)}
+                title="Update Student Progress"
+            >
+                {editingStudent && (
+                    <form onSubmit={handleUpdateStudent} className="space-y-4">
+                        {error && (
+                            <div className="bg-red-100 border-2 border-red-500 p-3 rounded-none mb-4">
+                                <p className="text-red-700 font-black text-xs uppercase tracking-widest">{error}</p>
+                            </div>
+                        )}
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Student Name</label>
+                            <Input
+                                disabled
+                                value={editingStudent.name}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Progress ({editingStudent.progress}%)</label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="5"
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-spark-orange"
+                                value={editingStudent.progress}
+                                onChange={(e) => setEditingStudent({ ...editingStudent, progress: parseInt(e.target.value) })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Status</label>
+                            <select
+                                className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold shadow-neo-sm"
+                                value={editingStudent.status}
+                                onChange={(e) => setEditingStudent({ ...editingStudent, status: e.target.value })}
+                            >
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Graduated">Graduated</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Course</label>
+                            <select
+                                className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold shadow-neo-sm"
+                                value={editingStudent.course}
+                                onChange={(e) => setEditingStudent({ ...editingStudent, course: e.target.value })}
+                            >
+                                {courses.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+                            </select>
+                        </div>
+                        <Button type="submit" className="w-full mt-4" disabled={actionLoading}>
+                            {actionLoading ? "Updating..." : "Save Student Progress"}
                         </Button>
                     </form>
                 )}

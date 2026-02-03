@@ -11,6 +11,9 @@ export default {
                 spark: {
                     orange: '#FF8A00',
                     purple: '#A855F7',
+                    blue: '#00D1FF',
+                    yellow: '#FFD600',
+                    green: '#00FF94',
                     black: '#000000',
                     white: '#FDFDFD',
                 }

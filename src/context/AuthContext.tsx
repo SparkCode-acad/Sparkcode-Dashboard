@@ -36,7 +36,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(firebaseUser.email || '');
 
                 unsubscribeFromUserDoc = onSnapshot(userDocRef, (docSnap) => {
-                    console.log("Auth Snapshot update for", firebaseUser.email, "IsSuperAdmin:", isSuperAdmin);
+                    const sessionId = Math.random().toString(36).substring(7);
+                    console.log(`[Auth] Snapshot update | User: ${firebaseUser.email} | Session: ${sessionId} | IsSuperAdmin: ${isSuperAdmin}`);
 
                     if (docSnap.exists()) {
                         const data = docSnap.data();
@@ -62,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setLoading(false);
                 });
             } else {
+                console.log("[Auth] No user session found");
                 if (unsubscribeFromUserDoc) unsubscribeFromUserDoc();
                 setUser(null);
                 setIsAuthenticated(false);
