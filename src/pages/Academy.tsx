@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
-import { Search, Plus, BookOpen, Users, GraduationCap, X } from 'lucide-react';
+import { Search, Plus, BookOpen, Users, GraduationCap, X, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
@@ -275,7 +275,7 @@ const Academy = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-white border-2 border-black shadow-neo overflow-hidden">
+                            <div className="bg-white border-2 border-black shadow-neo overflow-x-auto">
                                 <table className="w-full text-left bg-white">
                                     <thead className="bg-gray-50 border-b-2 border-black">
                                         <tr>
@@ -311,22 +311,22 @@ const Academy = () => {
                                                     )}>
                                                         {student.payment}
                                                     </span>
-                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="flex gap-3 ml-6">
                                                         {user?.role === 'admin' && (
                                                             <button
                                                                 onClick={() => {
                                                                     setEditingStudent(student);
                                                                     setIsStudentEditModalOpen(true);
                                                                 }}
-                                                                className="text-gray-400 hover:text-spark-orange"
+                                                                className="flex items-center justify-center p-2 bg-spark-blue/10 border-2 border-spark-blue text-spark-blue hover:bg-spark-blue hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                                                                 title="Edit Student"
                                                             >
-                                                                <Search size={16} /> {/* Using Search as edit visual placeholder or Edit icon */}
+                                                                <Edit2 size={16} />
                                                             </button>
                                                         )}
                                                         <button
                                                             onClick={() => handleDeleteStudent(student.id.toString())}
-                                                            className="text-gray-400 hover:text-red-500"
+                                                            className="flex items-center justify-center p-2 bg-red-50 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                                                             title="Delete Student"
                                                         >
                                                             <X size={16} />
