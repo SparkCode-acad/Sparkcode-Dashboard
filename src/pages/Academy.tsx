@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
-import { Search, Plus, BookOpen, Users, GraduationCap, X, Edit2 } from 'lucide-react';
+import { Search, Plus, BookOpen, Users, GraduationCap, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../context/AuthContext';
@@ -284,6 +284,7 @@ const Academy = () => {
                                             <th className="p-4 font-bold border-r border-black">Course</th>
                                             <th className="p-4 font-bold border-r border-black">Status</th>
                                             <th className="p-4 font-bold border-r border-black">Progress</th>
+                                            <th className="p-4 font-bold border-r border-black">Payment</th>
                                             <th className="p-4 font-bold">Actions</th>
                                         </tr>
                                     </thead>
@@ -305,6 +306,14 @@ const Academy = () => {
                                                         <span className="text-xs font-black">{student.progress}%</span>
                                                     </div>
                                                 </td>
+                                                <td className="p-4 border-r border-black">
+                                                    <Badge className={cn(
+                                                        "font-black uppercase",
+                                                        student.payment === 'Paid' ? 'bg-green-100 text-green-600 border-green-200' : 'bg-red-50 text-red-500 border-red-200'
+                                                    )}>
+                                                        {student.payment}
+                                                    </Badge>
+                                                </td>
                                                 <td className="p-4 font-mono font-bold">
                                                     <div className="flex gap-3">
                                                         <button
@@ -322,7 +331,7 @@ const Academy = () => {
                                                             className="flex items-center justify-center p-2 bg-red-50 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                                                             title="Delete Student"
                                                         >
-                                                            <X size={16} />
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -387,7 +396,7 @@ const Academy = () => {
                                                         className="flex items-center justify-center p-3 bg-red-500 border-2 border-black text-white shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                                                         title="Delete Student"
                                                     >
-                                                        <X size={20} />
+                                                        <Trash2 size={20} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -666,6 +675,17 @@ const Academy = () => {
                                 onChange={(e) => setEditingStudent({ ...editingStudent, course: e.target.value })}
                             >
                                 {courses.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold">Payment Status</label>
+                            <select
+                                className="flex h-10 w-full rounded-none border-2 border-black bg-white px-3 py-2 text-sm font-bold shadow-neo-sm"
+                                value={editingStudent.payment}
+                                onChange={(e) => setEditingStudent({ ...editingStudent, payment: e.target.value })}
+                            >
+                                <option value="Paid">Paid</option>
+                                <option value="Pending">Pending</option>
                             </select>
                         </div>
                         <Button type="submit" className="w-full mt-4" disabled={actionLoading}>
