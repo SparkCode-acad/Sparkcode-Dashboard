@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatRole(role: string | undefined): string {
-    if (!role) return 'Team';
+    if (!role) return 'Team Member';
     const lower = role.toLowerCase();
-    if (lower === 'student') return 'Team';
-    return role;
+    if (lower === 'admin') return 'Admin';
+    return 'Team Member';
 }

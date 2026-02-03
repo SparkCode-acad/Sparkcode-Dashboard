@@ -6,6 +6,7 @@ import { User, Lock, Bell, Globe, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useToast } from '../context/ToastContext';
+import { formatRole } from '../lib/utils';
 import { useTheme } from '../hooks/useTheme';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -195,7 +196,7 @@ const Settings = () => {
                             <label className="text-sm font-bold dark:text-gray-300">Your Identity/Role</label>
                             <div className="flex items-center gap-2">
                                 <span className="px-3 py-1 border-2 border-black text-xs font-black uppercase shadow-neo-sm rounded bg-spark-purple text-white">
-                                    Team Member
+                                    {formatRole(user?.role)}
                                 </span>
                                 <p className="text-[10px] font-bold text-gray-400 italic">Full access enabled for all team members.</p>
                             </div>

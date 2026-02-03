@@ -326,13 +326,15 @@ const Academy = () => {
                                                         >
                                                             <Edit2 size={16} />
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleDeleteStudent(student.id.toString())}
-                                                            className="flex items-center justify-center p-2 bg-red-50 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-                                                            title="Delete Student"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
+                                                        {user?.role === 'admin' && (
+                                                            <button
+                                                                onClick={() => handleDeleteStudent(student.id.toString())}
+                                                                className="flex items-center justify-center p-2 bg-red-50 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-neo-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                                                                title="Delete Student"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

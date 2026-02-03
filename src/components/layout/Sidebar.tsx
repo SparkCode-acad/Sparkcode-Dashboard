@@ -4,7 +4,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../hooks/useTheme";
-import { cn } from "../../lib/utils";
+import { cn, formatRole } from "../../lib/utils";
 import {
     LayoutDashboard,
     Briefcase,
@@ -80,7 +80,14 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
 
     ];
 
-    const filteredSections = menuItems;
+    const filteredSections = menuItems.map(section => ({
+        ...section,
+        items: section.items.filter(item => {
+            if (user?.role === 'admin') return true;
+            if (item.path === '/finance' || item.path === '/settings') return false;
+            return true;
+        })
+    })).filter(section => section.items.length > 0);
 
     return (
         <aside className={cn(
@@ -103,7 +110,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
                         </h1>
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Team Member</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{formatRole(user?.role)}</span>
                         </div>
                     </div>
                 </div>
@@ -167,7 +174,7 @@ const Sidebar = ({ mobile, onClose }: SidebarProps) => {
                             <div className="flex items-center gap-1">
                                 <p className="text-xs font-bold truncate w-20">{user?.name || 'User'}</p>
                                 <span className="text-[8px] px-1 border border-black rounded shadow-neo-sm font-black uppercase bg-spark-purple text-white">
-                                    Team Member
+                                    {formatRole(user?.role)}
                                 </span>
                             </div>
                             <p className="text-[10px] text-gray-500 truncate w-24">{user?.email || 'Guest'}</p>

@@ -10,9 +10,11 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, BarChart, Bar, Cell
 } from 'recharts';
+import { useAuth } from "../context/AuthContext";
 
 const Dashboard = () => {
     const { activities } = useNotifications();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         revenue: 0,
@@ -142,7 +144,8 @@ const Dashboard = () => {
             change: "+12.5% from last month",
             icon: DollarSign,
             color: "bg-green-100",
-            trend: "up"
+            trend: "up",
+            isAdminOnly: true
         },
         {
             title: "Active Projects",
@@ -166,9 +169,10 @@ const Dashboard = () => {
             change: "Steady increase",
             icon: TrendingUp,
             color: "bg-purple-100",
-            trend: "up"
+            trend: "up",
+            isAdminOnly: true
         }
-    ];
+    ].filter(card => !card.isAdminOnly || user?.role === 'admin');
 
     if (loading) {
         return (
@@ -225,61 +229,63 @@ const Dashboard = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {/* Revenue Chart - OPEN TO ALL */}
-                <Card className="lg:col-span-2 dark:bg-gray-800 dark:border-gray-700">
-                    <CardHeader className="border-b-2 border-dashed border-gray-100 dark:border-gray-700">
-                        <CardTitle className="flex items-center gap-2 dark:text-white">
-                            <TrendingUp size={20} className="text-spark-orange" /> Revenue Growth
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[300px] mt-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={revenueData}>
-                                <defs>
-                                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                <XAxis
-                                    dataKey="name"
-                                    stroke="#9ca3af"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                />
-                                <YAxis
-                                    stroke="#9ca3af"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickFormatter={(value) => `$${value}`}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#000',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        color: '#fff'
-                                    }}
-                                    itemStyle={{ color: '#fff' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="revenue"
-                                    stroke="#f97316"
-                                    strokeWidth={4}
-                                    fillOpacity={1}
-                                    fill="url(#colorRev)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                {/* Revenue Chart - ADMIN ONLY */}
+                {user?.role === 'admin' && (
+                    <Card className="lg:col-span-2 dark:bg-gray-800 dark:border-gray-700">
+                        <CardHeader className="border-b-2 border-dashed border-gray-100 dark:border-gray-700">
+                            <CardTitle className="flex items-center gap-2 dark:text-white">
+                                <TrendingUp size={20} className="text-spark-orange" /> Revenue Growth
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-[300px] mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={revenueData}>
+                                    <defs>
+                                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                    <XAxis
+                                        dataKey="name"
+                                        stroke="#9ca3af"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                    />
+                                    <YAxis
+                                        stroke="#9ca3af"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) => `$${value}`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#000',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            color: '#fff'
+                                        }}
+                                        itemStyle={{ color: '#fff' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="revenue"
+                                        stroke="#f97316"
+                                        strokeWidth={4}
+                                        fillOpacity={1}
+                                        fill="url(#colorRev)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Smaller Activity Chart */}
-                <Card className="dark:bg-gray-800 dark:border-gray-700">
+                <Card className={cn("dark:bg-gray-800 dark:border-gray-700", user?.role !== 'admin' && "lg:col-span-3")}>
                     <CardHeader className="border-b-2 border-dashed border-gray-100 dark:border-gray-700">
                         <CardTitle className="flex items-center gap-2 dark:text-white">
                             <BarChart3 size={20} className="text-spark-purple" /> Weekly Students
