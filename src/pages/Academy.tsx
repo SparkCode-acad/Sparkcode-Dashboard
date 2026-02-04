@@ -433,7 +433,7 @@ const Academy = () => {
                                             </div>
                                             <div className="flex justify-between items-center text-sm font-bold pb-2">
                                                 <span className="text-gray-500">Students</span>
-                                                <Badge variant="secondary" className="bg-gray-100">
+                                                <Badge variant="secondary" className="bg-gray-500">
                                                     {students.filter(s => s.course === course.title).length} Enrolled
                                                 </Badge>
                                             </div>
