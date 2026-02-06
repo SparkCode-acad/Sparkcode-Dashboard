@@ -84,10 +84,10 @@ const Login = () => {
                         </Button>
                     </form>
 
-                    {/* <div className="text-center text-xs text-gray-500 font-medium">
+                    <div className="text-center text-xs text-gray-500 font-medium">
                         <p>Demo Credentials:</p>
                         <p>admin@sparkcode.com / admin1</p>
-                    </div> */}
+                    </div>
                 </CardContent>
             </Card>
         </div>
